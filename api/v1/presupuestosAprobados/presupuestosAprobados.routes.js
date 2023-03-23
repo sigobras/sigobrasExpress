@@ -1,6 +1,5 @@
 const express = require("express");
 var fs = require("fs");
-const { uploadFileToS3 } = require("../../../utils/s3");
 
 const multer = require("multer");
 const storage = multer.diskStorage({
@@ -19,21 +18,9 @@ const storage = multer.diskStorage({
     cb(null, fileName);
   },
 });
-const fileFilter = (req, file, cb) => {
-  if (file.mimetype === "image/jpeg" || file.mimetype === "image/png") {
-    cb(null, true);
-  } else {
-    cb(new Error("Invalid file type, only JPEG and PNG is allowed!"), false);
-  }
-};
 const upload = multer({ storage });
-const uploadTest = multer({
-  fileFilter,
-  storage: multer.memoryStorage(),
-});
 
 const Controller = require("./presupuestosAprobados.controller");
-const ControllerAccesos = require("../accesos/accesos.controller");
 const procesarErrores = require("../../libs/errorHandler").procesarErrores;
 
 const obrasRouter = express.Router();
@@ -83,25 +70,4 @@ obrasRouter.delete(
     res.json(response);
   })
 );
-obrasRouter.post("/test", uploadTest.single("file"), async (req, res) => {
-  const { file } = req;
-  const fileName = file.originalname;
-  const fileType = file.mimetype;
-
-  try {
-    const fileURL = await uploadFileToS3(
-      file.buffer,
-      "test/" + fileName,
-      fileType
-    );
-    //database logic
-    console.log("working", { fileURL });
-    res.status(200).json({
-      fileName,
-      fileURL,
-    });
-  } catch (err) {
-    return res.status(500).send(err);
-  }
-});
 module.exports = obrasRouter;
