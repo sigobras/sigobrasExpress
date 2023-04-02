@@ -556,7 +556,7 @@ module.exports = function (app) {
       const fileType = file.mimetype;
       const extension = path.extname(file.originalname);
       const uniqueID = uuidv4();
-      const ruta = `${codigo_obra}/${uniqueID}${extension}`;
+      const ruta = `${codigo_obra}/PARTIDAS/${uniqueID}${extension}`;
       try {
         const fileURL = await uploadFileToS3(file.buffer, ruta, fileType);
         const response = await User.postavancePartidaImagen({
