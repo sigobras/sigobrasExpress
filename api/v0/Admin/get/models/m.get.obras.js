@@ -104,7 +104,7 @@ userModel.getComponentesById = (id_ficha) => {
 };
 userModel.getUnidadEjecutora = () => {
   return new Promise((resolve, reject) => {
-    pool.query("select * from UnidadEjecutoras", (err, res) => {
+    pool.query("select * from unidadejecutoras", (err, res) => {
       if (err) {
         reject(err.code);
       } else {
