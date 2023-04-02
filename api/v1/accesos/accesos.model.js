@@ -120,14 +120,14 @@ DB.obtenerLastId = () => {
 DB.getDataAsignacion = ({
   Fichas_id_ficha,
   Accesos_id_acceso,
-  cargos_id_Cargo,
+  Cargos_id_cargo,
 }) => {
   return new Promise((resolve, reject) => {
     const query = new queryBuilder("fichas_has_accesos")
       .where([
         `Fichas_id_ficha = ${Fichas_id_ficha}`,
         `Accesos_id_acceso = ${Accesos_id_acceso}`,
-        `cargos_id_Cargo = ${cargos_id_Cargo}`,
+        `cargos_id_Cargo = ${Cargos_id_cargo}`,
       ])
       .toString();
     pool.query(query, (err, res) => {

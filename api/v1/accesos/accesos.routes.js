@@ -118,7 +118,7 @@ accesosRouter.post(
     //se revisa si hay asignacion ya registrada
     var dataAsignacion = await accesoController.getDataAsignacion(req.body);
     var id = 0;
-    if (dataAsignacion.id) {
+    if (dataAsignacion?.id) {
       id = dataAsignacion.id;
     } else {
       var response = await accesoController.asignarObra(req.body);
