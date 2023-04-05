@@ -1,10 +1,43 @@
+# Node modules
 node_modules/
+
+# Temporary files
 pendientes.txt
+
+# Public assets
 src/public/
 public/
+
+# Environment variables
 *.env
+
+# Code coverage
 coverage/
+
+# Logs
 logs/*
 !logs/.gitkeep
+
+# Archives
 *.zip
+
+# Package manager lock files
 yarn.lock
+package-lock.json
+
+# Editor files
+*.sublime-project
+*.sublime-workspace
+.vscode/
+.idea/
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Compiled, build or output files
+*.log
+*.tmp
+*.swp
+dist/
+build/
