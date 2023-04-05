@@ -1,99 +1,81 @@
-let BaseModel = {};
-BaseModel.update = (tabla, valores, condiciones, allNulls = false) => {
-  var query = `UPDATE ${tabla} SET `;
-  var keys = Object.keys(valores);
-  for (let i = 0; i < keys.length; i++) {
-    var columna = keys[i];
-    if ((valores[columna] != undefined && valores[columna] != "") || allNulls) {
-      if (allNulls && valores[columna] == "") {
-        query += `${columna} = null,`;
-      } else {
-        query += `${columna} = '${valores[columna]}',`;
-      }
-    }
-  }
-  query = query.slice(0, -1);
-  query += " WHERE " + condiciones.join(" AND ");
-  console.log("query", query);
-  return query;
-};
-BaseModel.updateOnDuplicateKey = (tabla, listData) => {
-  var listValues = "";
-  var columnas = "";
-  var duplicateKeys = "";
+class BaseModel {
+  static update(tableName, values, conditions, allNulls = false) {
+    const columnUpdates = Object.entries(values)
+      .filter(
+        ([key, value]) => allNulls || (value !== undefined && value !== "")
+      )
+      .map(([key, value]) =>
+        allNulls && value === "" ? `${key} = null` : `${key} = '${value}'`
+      )
+      .join(", ");
 
-  for (let i = 0; i < listData.length; i++) {
-    const valores = listData[i];
-    var keys = Object.keys(valores);
+    const whereClause = conditions.join(" AND ");
 
-    var values = "";
-    for (let j = 0; j < keys.length; j++) {
-      var columna = keys[j];
-      if (valores[columna] == undefined) {
-        values += `${valores[columna]},`;
-      } else {
-        values += `'${valores[columna]}',`;
-      }
-      if (i == 0) {
-        columnas += `${columna},`;
-        duplicateKeys += `${columna}=values(${columna}),`;
-      }
-    }
-    values = values.slice(0, -1);
-    listValues += `(${values}),`;
+    const query = `UPDATE ${tableName} SET ${columnUpdates} WHERE ${whereClause}`;
+    console.log("query", query);
+    return query;
   }
-  columnas = columnas.slice(0, -1);
-  duplicateKeys = duplicateKeys.slice(0, -1);
-  listValues = listValues.slice(0, -1);
-  var query = `
-    INSERT INTO ${tabla} (${columnas} )
-    VALUES ${listValues}
-    on duplicate key update  ${duplicateKeys}`;
-  return query;
-};
-BaseModel.delete = (tabla, condiciones) => {
-  if (condiciones.length == 0) return "";
-  var query = `DELETE FROM ${tabla}`;
-  query += " WHERE " + condiciones.join(" AND ");
-  return query;
-};
-BaseModel.insert = (tabla, data) => {
-  var columnas = "";
-  var values = "";
 
-  var keys = Object.keys(data);
-  for (let i = 0; i < keys.length; i++) {
-    const columna = keys[i];
-    columnas += `${columna},`;
-    values += `'${data[columna]}',`;
+  static updateOnDuplicateKey(tableName, dataList) {
+    const firstEntry = dataList[0];
+    const columns = Object.keys(firstEntry).join(", ");
+    const duplicateKeys = Object.keys(firstEntry)
+      .map((column) => `${column}=VALUES(${column})`)
+      .join(", ");
+
+    const valuesList = dataList
+      .map((data) => {
+        const values = Object.values(data)
+          .map((value) => (value === undefined ? value : `'${value}'`))
+          .join(", ");
+        return `(${values})`;
+      })
+      .join(", ");
+
+    const query = `
+      INSERT INTO ${tableName} (${columns})
+      VALUES ${valuesList}
+      ON DUPLICATE KEY UPDATE ${duplicateKeys}`;
+
+    return query;
   }
-  columnas = columnas.slice(0, -1);
-  values = values.slice(0, -1);
-  return `INSERT INTO ${tabla}(${columnas})VALUES(${values})`;
-};
-BaseModel.select = (tabla, data, condiciones) => {
-  var columnas = "";
-  if (data != undefined && data.length > 0) {
-    for (let i = 0; i < data.length; i++) {
-      var columna = data[i].columna;
-      if (data[i].nombre) {
-        var nombre = data[i].nombre;
-      } else {
-        var nombre = columna;
-      }
-      if (data[i].format == "fecha") {
-        columna = `DATE_FORMAT(${columna}, '%Y-%m-%d')`;
-      }
-      columnas += `${columna} ${nombre},`;
-    }
-    columnas = columnas.slice(0, -1);
-  } else {
-    columnas = "*";
+
+  static delete(tableName, conditions) {
+    if (conditions.length === 0) return "";
+    const whereClause = conditions.join(" AND ");
+    return `DELETE FROM ${tableName} WHERE ${whereClause}`;
   }
-  var query = `select  ${columnas} FROM ${tabla}`;
-  if (condiciones && condiciones.length) {
-    query += " WHERE " + condiciones.join(" AND ");
+
+  static insert(tableName, data) {
+    const columns = Object.keys(data).join(", ");
+    const values = Object.values(data)
+      .map((value) => `'${value}'`)
+      .join(", ");
+    return `INSERT INTO ${tableName}(${columns}) VALUES (${values})`;
   }
-  return query;
-};
+
+  static select(tableName, columnsData, conditions) {
+    const columnSelection =
+      columnsData && columnsData.length > 0
+        ? columnsData
+            .map(({ columna, nombre, format }) => {
+              nombre = nombre || columna;
+              columna =
+                format === "fecha"
+                  ? `DATE_FORMAT(${columna}, '%Y-%m-%d')`
+                  : columna;
+              return `${columna} ${nombre}`;
+            })
+            .join(", ")
+        : "*";
+
+    const whereClause =
+      conditions && conditions.length
+        ? `WHERE ${conditions.join(" AND ")}`
+        : "";
+
+    return `SELECT ${columnSelection} FROM ${tableName} ${whereClause}`;
+  }
+}
+
 module.exports = BaseModel;
