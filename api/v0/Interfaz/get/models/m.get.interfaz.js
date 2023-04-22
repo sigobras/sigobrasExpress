@@ -45,20 +45,17 @@ module.exports = {
       );
     });
   },
-  getIdAcceso({ usuario, password }) {
-    console.log("data", usuario, password);
-    return new Promise((resolve, reject) => {
-      pool.query(
-        "SELECT accesos.id_acceso FROM accesos WHERE estado = 1 AND usuario = ? AND password = ? ORDER BY accesos.id_acceso DESC LIMIT 1",
-        [usuario, password],
-        (error, res) => {
-          if (error) {
-            reject(error);
-          }
-          resolve(res);
-        }
-      );
-    });
+  async getIdAcceso({ usuario, password }) {
+    try {
+      const query =
+        "SELECT accesos.id_acceso FROM accesos WHERE estado = 1 AND usuario = ? AND password = ? ORDER BY accesos.id_acceso DESC LIMIT 1";
+      const [rows] = await pool.query(query, [usuario, password]);
+
+      return rows;
+    } catch (error) {
+      console.error("Error in getIdAcceso:", error);
+      throw error;
+    }
   },
   getIdAccesoAdmin({ usuario, password }) {
     return new Promise((resolve, reject) => {
@@ -86,38 +83,36 @@ module.exports = {
       });
     });
   },
-  getCargoByIdAcceso({ id_acceso }) {
-    return new Promise((resolve, reject) => {
-      var query = `
-      SELECT
-          Cargos_id_Cargo cargo
-      FROM
-          fichas_has_accesos
-      WHERE
-          Accesos_id_acceso = ${id_acceso}
-      LIMIT 1
+  async getCargoByIdAcceso({ id_acceso }) {
+    try {
+      const query = `
+        SELECT
+            Cargos_id_Cargo cargo
+        FROM
+            fichas_has_accesos
+        WHERE
+            Accesos_id_acceso = ?
+        LIMIT 1
       `;
-      pool.query(query, (error, res) => {
-        if (error) {
-          reject(error);
-        }
-        resolve(res ? res[0] : {});
-      });
-    });
+      const [res] = await pool.execute(query, [id_acceso]);
+      return res ? res[0] : {};
+    } catch (error) {
+      throw error;
+    }
   },
-  getTipoAdministracion({ id_ficha }) {
-    return new Promise((resolve, reject) => {
-      pool.query(
-        "SELECT COUNT(fichas.id_ficha) estado FROM fichas WHERE fichas.fichas_tipo_administracion_id = 2 AND fichas.id_ficha = ?;",
-        [id_ficha],
-        (error, res) => {
-          if (error) {
-            reject(error);
-          }
-          resolve(res ? res[0] : {});
-        }
-      );
-    });
+  async getTipoAdministracion({ id_ficha }) {
+    try {
+      const query = `
+        SELECT COUNT(fichas.id_ficha) estado
+        FROM fichas
+        WHERE fichas.fichas_tipo_administracion_id = 2
+          AND fichas.id_ficha = ?;
+      `;
+      const [res] = await pool.execute(query, [id_ficha]);
+      return res ? res[0] : {};
+    } catch (error) {
+      throw error;
+    }
   },
   //revisar
   getMenu({ id_ficha, id_acceso }) {
@@ -178,9 +173,8 @@ module.exports = {
       );
     });
   },
-  getMenu2({ id_ficha, id_acceso }) {
-    return new Promise((resolve, reject) => {
-      var query = `
+  async getMenu2({ id_ficha, id_acceso }) {
+    const query = `
       SELECT
           cargos.nombre cargo_nombre, accesos.nombre usuario_nombre,menu
       FROM
@@ -190,25 +184,24 @@ module.exports = {
               LEFT JOIN
           cargos ON cargos.id_Cargo = fichas_has_accesos.Cargos_id_Cargo
       WHERE
-          id_acceso = ${id_acceso} AND Fichas_id_ficha = ${id_ficha}
-      `;
-      pool.query(query, (error, res) => {
-        if (error) {
-          reject(error);
-        }
-        resolve(res ? res[0] : {});
-      });
-    });
+          id_acceso = ? AND Fichas_id_ficha = ?
+    `;
+
+    try {
+      const [rows] = await pool.query(query, [id_acceso, id_ficha]);
+      return rows ? rows[0] : {};
+    } catch (error) {
+      throw error;
+    }
   },
-  getMenuDefecto() {
-    return new Promise((resolve, reject) => {
-      pool.query("SELECT * FROM master_menus limit 1", (error, res) => {
-        if (error) {
-          reject(error);
-        }
-        resolve(res ? res[0] : {});
-      });
-    });
+  async getMenuDefecto() {
+    try {
+      const query = "SELECT * FROM master_menus limit 1";
+      const [res] = await pool.execute(query);
+      return res ? res[0] : {};
+    } catch (error) {
+      throw error;
+    }
   },
   getDatosGenerales(id_ficha) {
     return new Promise((resolve, reject) => {
