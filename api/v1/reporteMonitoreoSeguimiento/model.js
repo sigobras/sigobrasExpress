@@ -25,23 +25,11 @@ const reporte_monitoreo_seguimiento = sequelize.define(
       type: DataTypes.STRING,
       allowNull: true,
     },
-    num_genera: {
-      type: DataTypes.STRING,
-      allowNull: true,
-    },
-    num: {
-      type: DataTypes.STRING,
-      allowNull: true,
-    },
     cui: {
       type: DataTypes.STRING,
       allowNull: true,
     },
     nombre_proyecto: {
-      type: DataTypes.STRING,
-      allowNull: true,
-    },
-    provincia: {
       type: DataTypes.STRING,
       allowNull: true,
     },
@@ -129,10 +117,6 @@ const reporte_monitoreo_seguimiento = sequelize.define(
       type: DataTypes.STRING,
       allowNull: true,
     },
-    pia: {
-      type: DataTypes.STRING,
-      allowNull: true,
-    },
     modif: {
       type: DataTypes.STRING,
       allowNull: true,
@@ -142,14 +126,6 @@ const reporte_monitoreo_seguimiento = sequelize.define(
       allowNull: true,
     },
     total_certificado: {
-      type: DataTypes.STRING,
-      allowNull: true,
-    },
-    saldo: {
-      type: DataTypes.STRING,
-      allowNull: true,
-    },
-    expediente_1: {
       type: DataTypes.STRING,
       allowNull: true,
     },
@@ -281,19 +257,11 @@ const reporte_monitoreo_seguimiento = sequelize.define(
       type: DataTypes.STRING,
       allowNull: true,
     },
-    total_cemento: {
-      type: DataTypes.STRING,
-      allowNull: true,
-    },
     observaciones: {
       type: DataTypes.STRING,
       allowNull: true,
     },
     estado: {
-      type: DataTypes.STRING,
-      allowNull: true,
-    },
-    linea_base_ejecucion_fisica_actual_enero_2: {
       type: DataTypes.STRING,
       allowNull: true,
     },
