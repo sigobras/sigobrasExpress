@@ -130,7 +130,7 @@ const reporte_monitoreo_seguimiento = sequelize.define(
       allowNull: true,
     },
     avance_fisico_1: {
-      type: DataTypes.STRING,
+      type: DataTypes.NUMBER,
       allowNull: true,
     },
     avance_financiero_1: {
@@ -242,7 +242,7 @@ const reporte_monitoreo_seguimiento = sequelize.define(
       allowNull: true,
     },
     cantidad_cemento: {
-      type: DataTypes.STRING,
+      type: DataTypes.DECIMAL,
       allowNull: true,
     },
     fecha_vencimiento_cemento: {
@@ -250,10 +250,10 @@ const reporte_monitoreo_seguimiento = sequelize.define(
       allowNull: true,
     },
     cantidad_vencidos_cemento: {
-      type: DataTypes.STRING,
+      type: DataTypes.NUMBER,
       allowNull: true,
     },
-    fecha_vencimiento_cemento_1: {
+    prestamo: {
       type: DataTypes.STRING,
       allowNull: true,
     },
