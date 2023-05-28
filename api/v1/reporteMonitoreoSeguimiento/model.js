@@ -161,6 +161,10 @@ const reporte_monitoreo_seguimiento = sequelize.define(
       type: DataTypes.STRING,
       allowNull: true,
     },
+    observaciones_fecha_control_plazos: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
     documentacion_reinicio_obra: {
       type: DataTypes.STRING,
       allowNull: true,
