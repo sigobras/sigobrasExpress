@@ -3,7 +3,7 @@ const queryBuilder = require("../../libs/queryBuilder");
 const DB = {};
 DB.obtenerTodosByCargo = async ({ id_ficha, id_cargo }) => {
   try {
-    const query = `
+    let query = `
       SELECT
           designaciones.id,
           accesos.apellido_paterno,
@@ -28,17 +28,31 @@ DB.obtenerTodosByCargo = async ({ id_ficha, id_cargo }) => {
                 LEFT JOIN
           cargos ON cargos.id_Cargo = fichas_has_accesos.cargos_id_Cargo
       WHERE
-          Fichas_id_ficha = ? AND Cargos_id_Cargo = ?
-      ORDER BY fecha_inicio DESC
+          Fichas_id_ficha = ?
     `;
-    const [rows] = await pool.execute(query, [id_ficha, id_cargo]);
+
+    const params = [id_ficha];
+
+    if (id_cargo) {
+      query += " AND Cargos_id_Cargo = ?";
+      params.push(id_cargo);
+    }
+
+    query += " ORDER BY fecha_inicio DESC";
+
+    const [rows] = await pool.execute(query, params);
     return rows;
   } catch (error) {
     throw error;
   }
 };
 
-DB.actualizarById = async ({ id, fecha_inicio, fecha_final, tipoUndefined }) => {
+DB.actualizarById = async ({
+  id,
+  fecha_inicio,
+  fecha_final,
+  tipoUndefined,
+}) => {
   try {
     const query = `
       UPDATE designaciones
