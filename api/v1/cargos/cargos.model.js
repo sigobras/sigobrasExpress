@@ -1,31 +1,28 @@
 const DB = {};
 
-DB.obtenerTodos = ({ id_ficha, cargos_tipo_id }) => {
-  return new Promise((resolve, reject) => {
-    var query = `
+DB.obtenerTodos = async ({ id_ficha, cargos_tipo_id }) => {
+  var query = `
                SELECT * FROM cargos
             `;
-    var condiciones = [];
-    if (cargos_tipo_id != "" && cargos_tipo_id != undefined) {
-      condiciones.push(`(cargos_tipo_id = ${cargos_tipo_id})`);
-    }
-    if (condiciones.length > 0) {
-      query += " WHERE " + condiciones.join(" AND ");
-    }
-    query += `
+  var condiciones = [];
+  if (cargos_tipo_id != "" && cargos_tipo_id != undefined) {
+    condiciones.push(`(cargos_tipo_id = ${cargos_tipo_id})`);
+  }
+  if (condiciones.length > 0) {
+    query += " WHERE " + condiciones.join(" AND ");
+  }
+  query += `
       ORDER BY cargos.nivel,id_Cargo
     `;
-    pool.query(query, (error, res) => {
-      if (error) {
-        reject(error);
-      }
-      resolve(res);
-    });
-  });
+  try {
+    const [res] = await pool.query(query);
+    return res;
+  } catch (error) {
+    throw error;
+  }
 };
-DB.obtenerTodosByObra = ({ id_ficha, cargos_tipo_id }) => {
-  return new Promise((resolve, reject) => {
-    var query = `
+DB.obtenerTodosByObra = async ({ id_ficha, cargos_tipo_id }) => {
+  var query = `
                 SELECT
                     cargos.nombre cargo_nombre, cargos.id_cargo
                 FROM
@@ -37,29 +34,26 @@ DB.obtenerTodosByObra = ({ id_ficha, cargos_tipo_id }) => {
                 WHERE
                     fichas_has_accesos.Fichas_id_ficha = ${id_ficha}
             `;
-    var condiciones = [];
-    if (cargos_tipo_id != "" && cargos_tipo_id != undefined) {
-      condiciones.push(`(cargos_tipo_id = ${cargos_tipo_id})`);
-    }
-    if (condiciones.length > 0) {
-      query += " AND " + condiciones.join(" AND ");
-    }
-    query += `
+  var condiciones = [];
+  if (cargos_tipo_id != "" && cargos_tipo_id != undefined) {
+    condiciones.push(`(cargos_tipo_id = ${cargos_tipo_id})`);
+  }
+  if (condiciones.length > 0) {
+    query += " AND " + condiciones.join(" AND ");
+  }
+  query += `
      GROUP BY cargos.id_Cargo
                 ORDER BY cargos.nivel
     `;
-    pool.query(query, (error, res) => {
-      if (error) {
-        console.log(error);
-        reject(error);
-      }
-      resolve(res);
-    });
-  });
+  try {
+    const [res] = await pool.query(query);
+    return res;
+  } catch (error) {
+    throw error;
+  }
 };
-DB.obtenerUltimoCargoById = ({ id, id_ficha }) => {
-  return new Promise((resolve, reject) => {
-    var query = `
+DB.obtenerUltimoCargoById = async ({ id, id_ficha }) => {
+  var query = `
               SELECT
                   fichas_has_accesos.id,
                   usuarios.apellido_paterno,
@@ -79,13 +73,11 @@ DB.obtenerUltimoCargoById = ({ id, id_ficha }) => {
               ORDER BY fichas_has_accesos.id DESC
               LIMIT 1
             `;
-    pool.query(query, (error, res) => {
-      if (error) {
-        console.log(error);
-        reject(error);
-      }
-      resolve(res ? res[0] : {});
-    });
-  });
+  try {
+    const [res] = await pool.query(query);
+    return res ? res[0] : {};
+  } catch (error) {
+    throw error;
+  }
 };
 module.exports = DB;
