@@ -1,118 +1,108 @@
 const DB = {};
 
-DB.obtenerTodos = ({ id_ficha = 0, texto_buscar }) => {
-  return new Promise((resolve, reject) => {
-    var query = `
-            SELECT
-                SUM(IF(fichas_has_labels.fichas_id_ficha = ${id_ficha},
-                    1,
-                    0)) orden,
-                fichas_labels.*
-            FROM
-                fichas_labels
-                    LEFT JOIN
-                fichas_has_labels ON fichas_has_labels.fichas_labels_id = fichas_labels.id
-
-            `;
-    var condiciones = [];
-    if (texto_buscar != "" && texto_buscar != undefined) {
+DB.obtenerTodos = async ({ id_ficha = 0, texto_buscar }) => {
+  try {
+    const condiciones = [];
+    if (texto_buscar) {
       condiciones.push(
-        `(fichas_labels.nombre like \'%${texto_buscar}%\' || fichas_labels.descripcion like \'%${texto_buscar}%\')`
+        `(fichas_labels.nombre LIKE ? || fichas_labels.descripcion LIKE ?)`
       );
     }
-    if (condiciones.length > 0) {
-      query += " WHERE " + condiciones.join(" AND ");
-    }
-    query += ` GROUP BY fichas_labels.id
-            ORDER BY 1 DESC , fichas_labels.id DESC`;
-    pool.query(query, (error, res) => {
-      if (error) {
-        reject(error);
-      }
-      resolve(res);
-    });
-  });
-};
-DB.crearLabel = (data) => {
-  return new Promise((resolve, reject) => {
-    pool.query(`INSERT INTO fichas_labels set ?`, data, (error, res) => {
-      if (error) {
-        reject(error);
-      }
-      resolve(res);
-    });
-  });
-};
-DB.obtenerTodosByObra = ({ id_ficha }) => {
-  return new Promise((resolve, reject) => {
-    var query = `
-    SELECT
+    const query = `
+      SELECT
+        SUM(IF(fichas_has_labels.fichas_id_ficha = ?, 1, 0)) orden,
         fichas_labels.*
-    FROM
+      FROM
+        fichas_labels
+        LEFT JOIN fichas_has_labels ON fichas_has_labels.fichas_labels_id = fichas_labels.id
+      ${condiciones.length > 0 ? "WHERE " + condiciones.join(" AND ") : ""}
+      GROUP BY fichas_labels.id
+      ORDER BY 1 DESC, fichas_labels.id DESC
+    `;
+    const [rows] = await pool.execute(
+      query,
+      texto_buscar
+        ? [id_ficha, `%${texto_buscar}%`, `%${texto_buscar}%`]
+        : [id_ficha]
+    );
+    return rows;
+  } catch (error) {
+    throw error;
+  }
+};
+
+DB.crearLabel = async (data) => {
+  try {
+    const [result] = await pool.query("INSERT INTO fichas_labels SET ?", data);
+    return result;
+  } catch (error) {
+    throw error;
+  }
+};
+
+DB.obtenerTodosByObra = async ({ id_ficha }) => {
+  try {
+    const query = `
+      SELECT
+        fichas_labels.*
+      FROM
         fichas_has_labels
-            LEFT JOIN
-        fichas_labels ON fichas_labels.id = fichas_has_labels.fichas_labels_id
-    WHERE
-        fichas_id_ficha = ${id_ficha}
+        LEFT JOIN fichas_labels ON fichas_labels.id = fichas_has_labels.fichas_labels_id
+      WHERE
+        fichas_id_ficha = ?
     `;
-    pool.query(query, (error, res) => {
-      if (error) {
-        reject(error);
-      }
-      resolve(res);
-    });
-  });
+    const [rows] = await pool.execute(query, [id_ficha]);
+    return rows;
+  } catch (error) {
+    throw error;
+  }
 };
-DB.obtenerCantidadByObra = ({ id_ficha, id_label }) => {
-  return new Promise((resolve, reject) => {
-    var query = `
-    SELECT
-        count(*) cantidad
-    FROM
+
+DB.obtenerCantidadByObra = async ({ id_ficha, id_label }) => {
+  try {
+    const query = `
+      SELECT
+        COUNT(*) cantidad
+      FROM
         fichas_has_labels
-    WHERE
-        fichas_id_ficha = ${id_ficha}
-        AND fichas_labels_id = ${id_label};
+      WHERE
+        fichas_id_ficha = ? AND fichas_labels_id = ?
     `;
-    pool.query(query, (error, res) => {
-      if (error) {
-        reject(error);
-      }
-      resolve(res ? res[0] : {});
-    });
-  });
+    const [rows] = await pool.execute(query, [id_ficha, id_label]);
+    return rows.length ? rows[0] : {};
+  } catch (error) {
+    throw error;
+  }
 };
-DB.agregarLabelObra = ({ id_ficha, id_label }) => {
-  return new Promise((resolve, reject) => {
-    var query = `
-    INSERT INTO fichas_has_labels (fichas_id_ficha, fichas_labels_id)
-    VALUES (${id_ficha}, ${id_label})
-    on duplicate key update
-    fichas_id_ficha=values(fichas_id_ficha),
-    fichas_labels_id=values(fichas_labels_id)
+
+DB.agregarLabelObra = async ({ id_ficha, id_label }) => {
+  try {
+    const query = `
+      INSERT INTO fichas_has_labels (fichas_id_ficha, fichas_labels_id)
+      VALUES (?, ?)
+      ON DUPLICATE KEY UPDATE
+        fichas_id_ficha = VALUES(fichas_id_ficha),
+        fichas_labels_id = VALUES(fichas_labels_id)
     `;
-    pool.query(query, (error, res) => {
-      if (error) {
-        reject(error);
-      }
-      resolve(res);
-    });
-  });
+    const [result] = await pool.execute(query, [id_ficha, id_label]);
+    return result;
+  } catch (error) {
+    throw error;
+  }
 };
-DB.quitarLabelObra = ({ id_ficha, id_label }) => {
-  return new Promise((resolve, reject) => {
-    var query = `
+
+DB.quitarLabelObra = async ({ id_ficha, id_label }) => {
+  try {
+    const query = `
       DELETE FROM fichas_has_labels
       WHERE
-          fichas_id_ficha = ${id_ficha}
-          AND fichas_labels_id = ${id_label};
+        fichas_id_ficha = ? AND fichas_labels_id = ?
     `;
-    pool.query(query, (error, res) => {
-      if (error) {
-        reject(error);
-      }
-      resolve(res);
-    });
-  });
+    const [result] = await pool.execute(query, [id_ficha, id_label]);
+    return result;
+  } catch (error) {
+    throw error;
+  }
 };
+
 module.exports = DB;

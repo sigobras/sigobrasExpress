@@ -1,6 +1,7 @@
 const express = require("express");
 const path = require("path");
 require("dotenv").config();
+const sequelize = require('./config/sequelizeConfig');
 
 const pool = require("./config/db.config");
 
@@ -48,7 +49,13 @@ const main = () => {
   configureRoutes(app);
   configureStaticFiles(app);
   configureErrorHandling(app);
-
+  sequelize
+  .sync({ force: false })
+  .then(() => {
+    console.log("Base de datos conectada");
+  })
+  .catch((error) => {console.log("Error al conectar con la base de datos", error);
+});
   return startServer();
 };
 

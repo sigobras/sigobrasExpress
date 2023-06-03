@@ -41,26 +41,26 @@ module.exports = {
       );
     });
   },
-  getDatosUsuario({ id_acceso, id_ficha }) {
-    return new Promise((resolve, reject) => {
-      var query = `
-      SELECT
-          cargos.nombre cargo_nombre, accesos.nombre usuario_nombre
-      FROM
+  async getDatosUsuario({ id_acceso, id_ficha }) {
+    try {
+      const query = `
+        SELECT
+          cargos.nombre AS cargo_nombre,
+          accesos.nombre AS usuario_nombre
+        FROM
           accesos
-              LEFT JOIN
+        LEFT JOIN
           fichas_has_accesos ON fichas_has_accesos.Accesos_id_acceso = accesos.id_acceso
-              LEFT JOIN
+        LEFT JOIN
           cargos ON cargos.id_Cargo = fichas_has_accesos.Cargos_id_Cargo
-      WHERE
-          id_acceso = ${id_acceso} AND Fichas_id_ficha = ${id_ficha}
+        WHERE
+          id_acceso = ? AND Fichas_id_ficha = ?
       `;
-      pool.query(query, (error, res) => {
-        if (error) {
-          reject(error);
-        }
-        resolve(res ? res[0] : {});
-      });
-    });
+
+      const [rows] = await pool.query(query, [id_acceso, id_ficha]);
+      return rows[0] || {};
+    } catch (error) {
+      throw error;
+    }
   },
 };
