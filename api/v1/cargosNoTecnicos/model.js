@@ -17,7 +17,5 @@ module.exports = (sequelize, { DataTypes }) => {
       timestamps: false,
     }
   );
-
-  // Cargos_Obreros.hasMany(asignacion, { foreignKey: "id_cargos_obreros" });
   return Cargos_Obreros;
 };

@@ -47,7 +47,6 @@ const createData = async (req, res) => {
     if (!existingItem) {
       dataPersonal = await Model.create(req.body);
       id_personal_no_tecnico = dataPersonal.id;
-      //   return res.status(400).json({ error: "Registro ya existente" });
     }
     const dataAsignacion = await ModelAsignacion.create({
       id_personal_no_tecnico,

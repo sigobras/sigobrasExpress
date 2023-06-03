@@ -1,4 +1,3 @@
-// const { personalNoTecnico: Model, asignacion } = require("../models");
 const Model = require("./model");
 const getAllData = async (req, res) => {
   try {
