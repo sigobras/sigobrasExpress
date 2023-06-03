@@ -32,6 +32,11 @@ const partidasImagenes = require("./partidasImagenes/partidasImagenes.routes.js"
 const imagenesLabels = require("./imagenesLabels/imagenesLabels.routes.js");
 const imagenesLabelsAsignadas = require("./imagenesLabelsAsignadas/imagenesLabelsAsignadas.routes.js");
 const imagenesComentarios = require("./imagenesComentarios/imagenesComentarios.routes.js");
+const reporteMonitoreoSeguimiento = require("./reporteMonitoreoSeguimiento/routes.js");
+const personalNoTecnico = require("./personalNoTecnico/routes.js");
+const cargosNoTecnicos = require("./cargosNoTecnicos/routes.js");
+const asignacionPersonalNoTecnico = require("./asignacionPersonalNoTecnico/routes.js");
+const historialPersonalNoTecnico = require("./historialPersonalNoTecnico/routes.js");
 
 const express = require("express");
 const router = express.Router();
@@ -70,5 +75,10 @@ router.use("/partidasImagenes", partidasImagenes);
 router.use("/imagenesLabels", imagenesLabels);
 router.use("/imagenesLabelsAsignadas", imagenesLabelsAsignadas);
 router.use("/imagenesComentarios", imagenesComentarios);
+router.use("/reporteMonitoreoSeguimiento", reporteMonitoreoSeguimiento);
+router.use("/personalNoTecnico", personalNoTecnico);
+router.use("/cargosNoTecnicos", cargosNoTecnicos);
+router.use("/asignacionPersonalNoTecnico", asignacionPersonalNoTecnico);
+router.use("/historialPersonalNoTecnico", historialPersonalNoTecnico);
 
 module.exports = router;
