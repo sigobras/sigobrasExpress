@@ -48,7 +48,7 @@ const createData = async (req, res) => {
       dataPersonal = await Model.create(req.body);
       id_personal_no_tecnico = dataPersonal.id;
     }
-    const dataAsignacion = await ModelAsignacion.create({
+    const dataAsignacion = await asignacion.create({
       id_personal_no_tecnico,
       id_ficha: req.body.id_ficha,
       id_cargos_obreros: req.body.id_cargo,
