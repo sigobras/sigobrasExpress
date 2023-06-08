@@ -2,9 +2,7 @@ const { personalNoTecnico: Model, asignacion } = require("../models");
 
 const getAllData = async (req, res) => {
   try {
-    console.log(req.query);
     const obra = req.query.obra;
-    console.log({ obra });
     const items = await Model.findAll({
       include: [
         {
@@ -16,6 +14,7 @@ const getAllData = async (req, res) => {
           required: true,
         },
       ],
+      order: [['id', 'DESC']],
       raw: true,
     });
     res.json(items);

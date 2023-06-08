@@ -24,7 +24,6 @@ const getItemById = async (req, res) => {
     res.status(500).json({ message: "Internal server error" });
   }
 };
-console.log('llega');
 const createData = async (req, res) => {
   try {
     const data = await Model.create(req.body);
