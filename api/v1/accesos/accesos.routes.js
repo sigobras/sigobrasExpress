@@ -1,6 +1,7 @@
 const express = require("express");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const ms = require("ms");
 
 const log = require("../../../utils/logger");
 const validarUsuario = require("./accesos.validate").validarUsuario;
@@ -40,10 +41,10 @@ accesosRouter.post(
       );
       throw new DatosDeUsuarioYaEnUso();
     } else {
-      var hash = await bcrypt.hash(nuevoUsuario.password, 10);
+      var password = await bcrypt.hash(nuevoUsuario.password, 10);
       await accesoController.crear({
         ...nuevoUsuario,
-        hash,
+        password,
       });
       res.status(201).send("Usuario creado exitósamente.");
     }
@@ -53,42 +54,63 @@ accesosRouter.post(
   "/login",
   [validarPedidoDeLogin, transformarBodyALowercase],
   procesarErrores(async (req, res) => {
-    let usuarioNoAutenticado = req.body;
+    const usuarioNoAutenticado = req.body;
 
-    let usuarioRegistrado = await accesoController.obtenerUno(
+    const usuarioRegistrado = await accesoController.obtenerUno(
       usuarioNoAutenticado
     );
     if (!usuarioRegistrado) {
       log.info(
-        `Usuario [${usuarioNoAutenticado.usuario}] no existe. No pudo ser autenticado`
+        `El usuario [${usuarioNoAutenticado.usuario}] no existe. No se puede autenticar.`
       );
       throw new CredencialesIncorrectas();
     }
 
-    let passwordCorrecto = await bcrypt.compare(
+    const passwordCorrecto = await bcrypt.compare(
       usuarioNoAutenticado.password,
       usuarioRegistrado.password
     );
     if (passwordCorrecto) {
-      let token = jwt.sign(
+      const token = jwt.sign(
         { id: usuarioRegistrado.id_acceso },
         config.jwt.secreto,
         {
           expiresIn: config.jwt.tiempoDeExpiración,
         }
       );
-      log.info(
-        `Usuario ${usuarioNoAutenticado.usuario} completo autenticación exitosamente.`
+      const tokenExpiracion = new Date(
+        Date.now() + ms(config.jwt.tiempoDeExpiración)
       );
-      res.status(200).json({ token, id_acceso: usuarioRegistrado.id_acceso });
+      log.info(
+        `El usuario ${usuarioNoAutenticado.usuario} ha completado la autenticación exitosamente.`
+      );
+      res.status(200).json({
+        status: "success",
+        message: "Inicio de sesión exitoso",
+        data: {
+          token: token,
+          user_id: usuarioRegistrado.id_acceso,
+          token_expiration: tokenExpiracion.toISOString(),
+          user_data: {
+            estado: usuarioRegistrado.estado,
+            fecha_inicial: usuarioRegistrado.fecha_inicial,
+            ultima_modificacion: usuarioRegistrado.ultima_modificacion,
+            nombre: usuarioRegistrado.nombre,
+            apellido_paterno: usuarioRegistrado.apellido_paterno,
+            apellido_materno: usuarioRegistrado.apellido_materno,
+            imagen: usuarioRegistrado.imagen,
+          },
+        },
+      });
     } else {
       log.info(
-        `Usuario ${usuarioNoAutenticado.usuario} no completo autenticación. Contraseña incorrecta`
+        `El usuario ${usuarioNoAutenticado.usuario} no ha completado la autenticación. La contraseña es incorrecta.`
       );
       throw new CredencialesIncorrectas();
     }
   })
 );
+
 accesosRouter.put(
   "/",
   [validarUsuario, transformarBodyALowercase],

@@ -13,7 +13,7 @@ async function initDatabase() {
   try {
     const connection = await pool.getConnection();
     console.log('Database Connection established');
-    connection.release();
+    connection.destroy();
   } catch (err) {
     switch (err.code) {
       case 'PROTOCOL_CONNECTION_LOST':

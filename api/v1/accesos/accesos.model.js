@@ -1,128 +1,106 @@
 const BaseModel = require("../../libs/baseModel");
 const queryBuilder = require("../../libs/queryBuilder");
 const DB = {};
-DB.obtenerTodos = () => {
-  return new Promise((resolve, reject) => {
+
+DB.obtenerTodos = async () => {
+  try {
     const query = `
-    SELECT
-      *
-    FROM
-      accesos
+      SELECT *
+      FROM accesos
     `;
-    pool.query(query, (err, res) => {
-      if (err) {
-        reject(err);
-        return;
-      }
-      resolve(res);
-    });
-  });
+    const [rows] = await pool.query(query);
+    return rows;
+  } catch (err) {
+    throw err;
+  }
 };
-DB.existe = ({ usuario }) => {
-  return new Promise((resolve, reject) => {
+
+DB.existe = async ({ usuario }) => {
+  try {
     const query = `
-    SELECT
-        *
-    FROM
-        accesos
-    WHERE
-        usuario = '${usuario}'
-    LIMIT 1
+      SELECT *
+      FROM accesos
+      WHERE usuario = ?
+      LIMIT 1
     `;
-    pool.query(query, (err, res) => {
-      if (err) {
-        reject(err);
-        return;
-      }
-      resolve(res.length);
-    });
-  });
+    const [rows] = await pool.query(query, [usuario]);
+    return rows.length > 0;
+  } catch (err) {
+    throw err;
+  }
 };
-DB.crear = (data) => {
-  return new Promise((resolve, reject) => {
-    var query = BaseModel.insert("accesos", data);
-    pool.query(query, (err, res) => {
-      if (err) {
-        reject(err);
-        return;
-      }
-      resolve(res);
-    });
-  });
+
+DB.crear = async (data) => {
+  try {
+    const query = BaseModel.insert("accesos", data);
+    const [result] = await pool.query(query);
+    return result;
+  } catch (err) {
+    throw err;
+  }
 };
-DB.obtenerUno = ({ usuario }) => {
-  return new Promise((resolve, reject) => {
+
+DB.obtenerUno = async ({ usuario }) => {
+  try {
     const query = `
-    SELECT
-        *
-    FROM
-        accesos
-    WHERE
-        usuario = '${usuario}'
-    LIMIT 1
+      SELECT *
+      FROM accesos
+      WHERE usuario = ?
+      LIMIT 1
     `;
-    pool.query(query, (err, res) => {
-      if (err) {
-        reject(err);
-        return;
-      }
-      resolve(res ? res[0] : {});
-    });
-  });
+    const [rows] = await pool.query(query, [usuario]);
+    return rows[0] || {};
+  } catch (err) {
+    throw err;
+  }
 };
-DB.obtenerById = ({ id_acceso }) => {
-  return new Promise((resolve, reject) => {
+
+DB.obtenerById = async ({ id_acceso }) => {
+  try {
     const query = `
-    SELECT
-        *
-    FROM
-        accesos
-    WHERE
-        id_acceso = '${id_acceso}'
-    LIMIT 1
+      SELECT *
+      FROM accesos
+      WHERE id_acceso = ?
+      LIMIT 1
     `;
-    pool.query(query, (err, res) => {
-      if (err) {
-        reject(err);
-        return;
-      }
-      resolve(res ? res[0] : {});
-    });
-  });
+    const [rows] = await pool.query(query, [id_acceso]);
+    return rows[0] || {};
+  } catch (err) {
+    throw err;
+  }
 };
-DB.asignarObra = (data) => {
-  return new Promise((resolve, reject) => {
-    var query = BaseModel.insert("fichas_has_accesos", data);
-    pool.query(query, (err, res) => {
-      if (err) {
-        console.log(err);
-        reject(err);
-        return;
-      }
-      resolve(res);
-    });
-  });
+
+DB.asignarObra = async (data) => {
+  try {
+    const query = BaseModel.insert("fichas_has_accesos", data);
+    const [result] = await pool.query(query);
+    return result;
+  } catch (err) {
+    throw err;
+  }
 };
-DB.obtenerLastId = () => {
-  return new Promise((resolve, reject) => {
+
+DB.obtenerLastId = async () => {
+  try {
     const query = `
-      select id_acceso id from accesos order by id_acceso desc limit 1
+      SELECT id_acceso AS id
+      FROM accesos
+      ORDER BY id_acceso DESC
+      LIMIT 1
     `;
-    pool.query(query, (err, res) => {
-      if (err) {
-        reject(err);
-        return;
-      }
-      resolve(res ? res[0] : {});
-    });
-  });
+    const [rows] = await pool.query(query);
+    return rows[0] || {};
+  } catch (err) {
+    throw err;
+  }
 };
-DB.getDataAsignacion = ({
+
+DB.getDataAsignacion = async ({
   Fichas_id_ficha,
   Accesos_id_acceso,
   Cargos_id_cargo,
 }) => {
-  return new Promise((resolve, reject) => {
+  try {
     const query = new queryBuilder("fichas_has_accesos")
       .where([
         `Fichas_id_ficha = ${Fichas_id_ficha}`,
@@ -130,13 +108,11 @@ DB.getDataAsignacion = ({
         `cargos_id_Cargo = ${Cargos_id_cargo}`,
       ])
       .toString();
-    pool.query(query, (err, res) => {
-      if (err) {
-        reject(err);
-        return;
-      }
-      resolve(res ? res[0] : {});
-    });
-  });
+    const [rows] = await pool.query(query);
+    return rows[0] || {};
+  } catch (err) {
+    throw err;
+  }
 };
+
 module.exports = DB;
