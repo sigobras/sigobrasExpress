@@ -68,7 +68,7 @@ accesosRouter.post(
 
     const passwordCorrecto = await bcrypt.compare(
       usuarioNoAutenticado.password,
-      usuarioRegistrado.password
+      usuarioRegistrado.password || ""
     );
     if (passwordCorrecto) {
       const token = jwt.sign(
