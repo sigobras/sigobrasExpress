@@ -67,7 +67,7 @@ const getDataCurvaSAnyos = async (id_ficha) => {
   }
 };
 
-const getDataCurvaSAcumulados = async (id_ficha, anyo) => {
+const getDataCurvaSAcumulados = async ({ id_ficha, anyo }) => {
   try {
     const query = `SELECT SUM(curva_s.fisico_programado_monto) AS programado_acumulado, SUM(curva_s.fisico_monto) AS ejecutado_acumulado, SUM(curva_s.financiero_monto) AS financiero_acumulado FROM curva_s WHERE fichas_id_ficha = ${id_ficha} AND anyo <= ${anyo}`;
     const res = await pool.query(query);
@@ -77,7 +77,7 @@ const getDataCurvaSAcumulados = async (id_ficha, anyo) => {
   }
 };
 
-const getDataCurvaSAcumuladosByAnyo = async (id_ficha, anyo) => {
+const getDataCurvaSAcumuladosByAnyo = async ({ id_ficha, anyo }) => {
   try {
     const query = `SELECT anyo, SUM(curva_s.fisico_programado_monto) AS fisico_programado_monto, SUM(curva_s.fisico_monto) AS fisico_monto, SUM(curva_s.financiero_programado_monto) AS financiero_programado_monto, SUM(curva_s.financiero_monto) AS financiero_monto, "TOTAL" AS tipo FROM curva_s WHERE fichas_id_ficha = ${id_ficha} AND anyo < ${anyo} GROUP BY anyo`;
     const res = await pool.query(query);
@@ -87,7 +87,7 @@ const getDataCurvaSAcumuladosByAnyo = async (id_ficha, anyo) => {
   }
 };
 
-const getDataCurvaSAcumuladosByAnyo2 = async (id_ficha, anyo) => {
+const getDataCurvaSAcumuladosByAnyo2 = async ({ id_ficha, anyo }) => {
   try {
     const query = `SELECT anyo, SUM(curva_s.fisico_programado_monto) AS fisico_programado_monto, SUM(curva_s.fisico_monto) AS fisico_monto, SUM(curva_s.financiero_monto) AS financiero_monto, "TOTAL" AS tipo FROM curva_s WHERE fichas_id_ficha = ${id_ficha} AND anyo = ${anyo} GROUP BY anyo`;
     const res = await pool.query(query);
@@ -125,11 +125,11 @@ const getRegistrosAnyoCurvaS = async (fecha_inicial, id_ficha) => {
   }
 };
 
-const putFinancieroCurvaS = async (
+const putFinancieroCurvaS = async ({
   id,
   financiero_monto,
-  ultimo_editor_idacceso
-) => {
+  ultimo_editor_idacceso,
+}) => {
   try {
     const today = new Date();
     const dd = String(today.getDate()).padStart(2, "0");
@@ -146,11 +146,11 @@ const putFinancieroCurvaS = async (
   }
 };
 
-const putFinancieroProgramadoCurvaS = async (
+const putFinancieroProgramadoCurvaS = async ({
   id,
   financiero_programado_monto,
-  ultimo_editor_idacceso
-) => {
+  ultimo_editor_idacceso,
+}) => {
   try {
     const today = new Date();
     const dd = String(today.getDate()).padStart(2, "0");
@@ -269,7 +269,7 @@ const deletePeriodoCurvaS = async (id) => {
   }
 };
 
-const getPimData = async (id_ficha) => {
+const getPimData = async ({ id_ficha }) => {
   try {
     const query = `SELECT datos_anuales.*, fichas_id_ficha AS id_ficha FROM datos_anuales WHERE fichas_id_ficha = ${id_ficha}`;
     const res = await pool.query(query);
@@ -279,7 +279,7 @@ const getPimData = async (id_ficha) => {
   }
 };
 
-const getCurvaSPin = async (id_ficha, anyo) => {
+const getCurvaSPin = async ({ id_ficha, anyo }) => {
   try {
     const results = await pool.query(
       "SELECT * FROM datos_anuales WHERE fichas_id_ficha = ? AND anyo = ?;",
