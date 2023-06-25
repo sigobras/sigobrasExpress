@@ -61,7 +61,7 @@ const getDataCurvaSAnyos = async (id_ficha) => {
   try {
     const query = `SELECT anyo FROM curva_s WHERE fichas_id_ficha = ${id_ficha} GROUP BY anyo ORDER BY anyo DESC`;
     const res = await pool.query(query);
-    return res;
+    return res ? res[0] : [];
   } catch (error) {
     throw error;
   }
