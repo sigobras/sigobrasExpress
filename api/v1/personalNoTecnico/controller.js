@@ -1,28 +1,27 @@
-const { personalNoTecnico: Model, asignacion } = require("../models");
+const sequelize = require("../../../config/sequelizeConfig");
+const {
+  personalNoTecnico: Model,
+  asignacion,
+  cargosObreros,
+} = require("../models");
 
 const getAllData = async (req, res) => {
   try {
-    const obra = req.query.obra;
-    const items = await Model.findAll({
-      include: [
-        {
-          model: asignacion,
-          as: "asignacion",
-          where: {
-            id_ficha: obra,
-          },
-          required: true,
-        },
-      ],
-      order: [['id', 'DESC']],
-      raw: true,
-    });
+    const id_ficha = req.query.id_ficha;
+    const items = await sequelize.query(
+      "CALL ObtenerAsignacionesPorIdFicha(:id_ficha)",
+      {
+        replacements: { id_ficha: id_ficha },
+        type: sequelize.QueryTypes.SELECT,
+      }
+    );
     res.json(items);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Internal server error" });
   }
 };
+
 const getItemById = async (req, res) => {
   const { id } = req.params;
   try {
@@ -52,9 +51,14 @@ const createData = async (req, res) => {
       id_ficha: req.body.id_ficha,
       id_cargos_obreros: req.body.id_cargo,
     });
+    const cargo = await cargosObreros.findOne({
+      where: { id: req.body.id_cargo },
+    });
     res.status(201).json({
       ...dataPersonal.get({ plain: true }),
       ...dataAsignacion.get({ plain: true }),
+      cargo: cargo.get({ plain: true }).nombre,
+      id_asignacion: dataAsignacion.get({ plain: true }).id
     });
   } catch (err) {
     console.error(err);
