@@ -1,7 +1,7 @@
 const { asignacion } = require("../models");
 module.exports = (sequelize, { DataTypes }) => {
-  const Cargos_Obreros = sequelize.define(
-    "Cargos_Obreros",
+  const cargosObreros = sequelize.define(
+    "cargosObreros",
     {
       id: {
         type: DataTypes.INTEGER,
@@ -17,5 +17,5 @@ module.exports = (sequelize, { DataTypes }) => {
       timestamps: false,
     }
   );
-  return Cargos_Obreros;
+  return cargosObreros;
 };

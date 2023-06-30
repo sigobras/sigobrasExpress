@@ -1,4 +1,4 @@
-const { Cargos_Obreros: Model } = require("../models");
+const { cargosObreros: Model } = require("../models");
 
 const getAllData = async (req, res) => {
   try {

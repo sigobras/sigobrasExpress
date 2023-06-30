@@ -1,4 +1,4 @@
-const { personalNoTecnico, Cargos_Obreros, fichas } = require("../models");
+const { personalNoTecnico, cargosObreros, fichas } = require("../models");
 
 module.exports = (sequelize, { DataTypes }) => {
   const Asignacion = sequelize.define(
@@ -14,7 +14,5 @@ module.exports = (sequelize, { DataTypes }) => {
       timestamps: false,
     }
   );
-  // Asignacion.belongsTo(personalNoTecnico)
-
   return Asignacion;
 };

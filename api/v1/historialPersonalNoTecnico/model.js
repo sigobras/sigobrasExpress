@@ -1,7 +1,8 @@
 const { DataTypes } = require("sequelize");
 const sequelize = require("../../../config/sequelizeConfig");
 
-const HistorialPersonalNoTecnico = sequelize.define(
+module.exports = (sequelize, { DataTypes }) => {
+  const historialPersonalNoTecnico = sequelize.define(
   "historial_personal_no_tecnico",
   {
     id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
@@ -14,5 +15,5 @@ const HistorialPersonalNoTecnico = sequelize.define(
     timestamps: false,
   }
 );
-
-module.exports = HistorialPersonalNoTecnico;
+return historialPersonalNoTecnico;
+};

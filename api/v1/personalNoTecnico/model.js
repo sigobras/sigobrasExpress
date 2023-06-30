@@ -24,9 +24,6 @@ module.exports = (sequelize, { DataTypes }) => {
         allowNull: false,
         unique: true,
       },
-      telefono: {
-        type: DataTypes.STRING(10),
-      },
       fecha_nacimiento: {
         type: DataTypes.DATE,
       },
