@@ -1,5 +1,3 @@
-const { personalNoTecnico, cargosObreros, fichas } = require("../models");
-
 module.exports = (sequelize, { DataTypes }) => {
   const Asignacion = sequelize.define(
     "asignacion",

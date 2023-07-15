@@ -1,4 +1,3 @@
-const { asignacion } = require("../models");
 
 module.exports = (sequelize, { DataTypes }) => {
   const fichas = sequelize.define(
