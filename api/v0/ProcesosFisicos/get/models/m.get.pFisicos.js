@@ -526,31 +526,29 @@ module.exports = {
       );
     });
   },
-  getPrioridades() {
-    return new Promise((resolve, reject) => {
-      pool.query("select * from prioridades", (err, res) => {
-        if (err) {
-          reject(err.code);
-        } else if (res.length == 0) {
-          resolve("vacio");
-        } else {
-          resolve(res);
-        }
-      });
-    });
+  async getPrioridades() {
+    try {
+      const [rows] = await pool.query("SELECT * FROM prioridades");
+      if (rows.length === 0) {
+        return "vacio";
+      } else {
+        return rows;
+      }
+    } catch (error) {
+      throw error;
+    }
   },
-  getIconoscategorias() {
-    return new Promise((resolve, reject) => {
-      pool.query("select * from iconoscategorias", (err, res) => {
-        if (err) {
-          reject(err.code);
-        } else if (res.length == 0) {
-          resolve("vacio");
-        } else {
-          resolve(res);
-        }
-      });
-    });
+  async getIconoscategorias() {
+    try {
+      const [rows] = await pool.query("SELECT * FROM iconoscategorias");
+      if (rows.length === 0) {
+        return "vacio";
+      } else {
+        return rows;
+      }
+    } catch (error) {
+      throw error;
+    }
   },
   getPartidaComentarios(id_partida) {
     return new Promise((resolve, reject) => {
