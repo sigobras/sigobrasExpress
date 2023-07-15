@@ -1,5 +1,4 @@
 const tools = require("../../../../../utils/format");
-// let = {};
 
 function formatoAvance(data) {
   if (data == null) {
@@ -27,8 +26,8 @@ function formatoAvance(data) {
   }
   return data;
 }
+
 function formato(data) {
-  // data = parseFloat(data)
   data = Number(data);
   if (isNaN(data)) {
     data = 0;
@@ -51,123 +50,170 @@ function formato(data) {
 }
 
 module.exports = {
-  getComponentes(id_ficha) {
-    return new Promise((resolve, reject) => {
-      pool.query(
+  async getComponentes(id_ficha) {
+    try {
+      const connection = await pool.getConnection();
+      const [rows] = await connection.query(
         "SELECT componentes.* FROM componentes WHERE componentes.fichas_id_ficha = ?",
-        id_ficha,
-        (error, res) => {
-          if (error) {
-            reject(error);
-          }
-          resolve(res);
-        }
+        id_ficha
       );
-    });
+      connection.release();
+      return rows;
+    } catch (error) {
+      throw error;
+    }
   },
-  getTotalConteoPartidas({
+
+  async getTotalConteoPartidas({
     id_componente,
     id_prioridad,
     id_iconoCategoria,
     texto_buscar,
   }) {
-    var query =
+    let query =
       "SELECT COUNT(partidas.id_partida) total FROM partidas WHERE partidas.componentes_id_componente = ?";
-    var condiciones = [];
-    if (id_prioridad != 0) {
+    const condiciones = [];
+    if (id_prioridad !== 0) {
       condiciones.push(`(partidas.prioridades_id_prioridad = ${id_prioridad})`);
     }
-    if (id_iconoCategoria != 0) {
+    if (id_iconoCategoria !== 0) {
       condiciones.push(
         `(partidas.iconosCategorias_id_iconoCategoria =  ${id_iconoCategoria})`
       );
     }
-    if (texto_buscar != "") {
+    if (texto_buscar !== "") {
       condiciones.push(
-        `(partidas.item like \'%${texto_buscar}%\' || partidas.descripcion like \'%${texto_buscar}%\')`
+        `(partidas.item like '%${texto_buscar}%' || partidas.descripcion like '%${texto_buscar}%')`
       );
     }
     if (condiciones.length > 0) {
       query += " AND " + condiciones.join(" AND ");
     }
-    return new Promise((resolve, reject) => {
-      pool.query(query, [id_componente], (error, res) => {
-        if (error) {
-          reject(error);
-        }
-        resolve(res ? res[0] : {});
-      });
-    });
+    try {
+      const connection = await pool.getConnection();
+      const [rows] = await connection.query(query, [id_componente]);
+      connection.release();
+      return rows ? rows[0] : {};
+    } catch (error) {
+      throw error;
+    }
   },
-  getPartidas(
+
+  async getPartidas(
     id_componente = null,
     id_actividad = null,
     id_ficha = null,
     formato = true
   ) {
-    return new Promise((resolve, reject) => {
-      pool.query(
-        "/*COALESCE(parcial_negativo / parcial_positivo, 0) + 1 porcentaje_negatividad_ajustado*/SELECT partidas.rendimiento, partidas.id_partida, partidas.tipo, partidas.item, partidas.descripcion, TRIM(BOTH '/DIA' FROM partidas.unidad_medida) unidad_medida, partidas.metrado, partidas.costo_unitario, partidas.metrado * partidas.costo_unitario parcial, COALESCE(SUM(avanceactividades.valor), 0) * (COALESCE(parcial_negativo / parcial_positivo, 0) + 1) avance_metrado, COALESCE(SUM(avanceactividades.valor * partidas.costo_unitario), 0) * (COALESCE(parcial_negativo / parcial_positivo, 0) + 1) avance_costo, partidas.metrado - COALESCE(SUM(avanceactividades.valor), 0) * (COALESCE(parcial_negativo / parcial_positivo, 0) + 1) metrados_saldo, (partidas.metrado * partidas.costo_unitario) - (COALESCE(SUM(avanceactividades.valor * partidas.costo_unitario), 0) * (COALESCE(parcial_negativo / parcial_positivo, 0) + 1)) metrados_costo_saldo, COALESCE(SUM(avanceactividades.valor), 0) / partidas.metrado * 100 * (COALESCE(parcial_negativo / parcial_positivo, 0) + 1) porcentaje, (COALESCE(parcial_negativo / parcial_positivo, 0) + 1) porcentaje_negatividad, COALESCE(partidas.metrado / partidas.rendimiento, '') partida_duracion, COALESCE(estado_partida.mayorMetrado, FALSE) mayorMetrado, prioridades.valor prioridad_valor, prioridades.color prioridad_color, iconoscategorias.nombre iconocategoria_nombre FROM componentes inner JOIN partidas ON partidas.componentes_id_componente = componentes.id_componente LEFT JOIN (SELECT partidas.id_partida, TRUE mayorMetrado FROM partidas LEFT JOIN actividades ON actividades.Partidas_id_partida = partidas.id_partida LEFT JOIN avanceactividades ON avanceactividades.Actividades_id_actividad = actividades.id_actividad LEFT JOIN historialactividades ON historialactividades.actividades_id_actividad = actividades.id_actividad WHERE historialactividades.estado = 'Mayor Metrado' GROUP BY partidas.id_partida) estado_partida ON estado_partida.id_partida = partidas.id_partida LEFT JOIN iconoscategorias ON iconoscategorias.id_iconoCategoria = partidas.iconosCategorias_id_iconoCategoria LEFT JOIN prioridades ON prioridades.id_prioridad = partidas.prioridades_id_prioridad LEFT JOIN actividades ON actividades.Partidas_id_partida = partidas.id_partida LEFT JOIN avanceactividades ON avanceactividades.Actividades_id_actividad = actividades.id_actividad LEFT JOIN historialactividades ON historialactividades.actividades_id_actividad = actividades.id_actividad LEFT JOIN (SELECT partidas.id_partida, SUM(actividades.parcial) parcial_positivo FROM partidas LEFT JOIN actividades ON actividades.Partidas_id_partida = partidas.id_partida LEFT JOIN historialactividades ON historialactividades.actividades_id_actividad = actividades.id_actividad WHERE actividades.parcial > 0 AND historialactividades.estado IS NULL GROUP BY partidas.id_partida) p1 ON p1.id_partida = partidas.id_partida LEFT JOIN (SELECT partidas.id_partida, SUM(actividades.parcial) parcial_negativo FROM partidas LEFT JOIN actividades ON actividades.Partidas_id_partida = partidas.id_partida LEFT JOIN historialactividades ON historialactividades.actividades_id_actividad = actividades.id_actividad WHERE actividades.parcial < 0 AND historialactividades.estado IS NULL GROUP BY partidas.id_partida) p2 ON p2.id_partida = partidas.id_partida LEFT JOIN (SELECT historialpartidas.estado, historialpartidas.partidas_id_partida FROM (SELECT MAX(id_historialPartida) id_historialPartida FROM historialpartidas GROUP BY historialpartidas.partidas_id_partida) maximoHistorial LEFT JOIN historialpartidas ON historialpartidas.id_historialPartida = maximoHistorial.id_historialPartida) historialPartida ON historialPartida.partidas_id_partida = partidas.id_partida WHERE TRUE AND (partidas.componentes_id_componente = ? OR partidas.id_partida = (SELECT actividades.Partidas_id_partida FROM actividades WHERE actividades.id_actividad = ? LIMIT 1) OR componentes.fichas_id_ficha = ? ) GROUP BY partidas.id_partida order by componentes.id_componente,partidas.item",
-        [id_componente, id_actividad, id_ficha],
-        (error, res) => {
-          if (error) {
-            reject(error);
-          } else if (res.length == 0) {
-            reject("vacio getPartidas");
+    try {
+      const connection = await pool.getConnection();
+      const [rows] = await connection.query(
+        `
+        SELECT partidas.rendimiento, partidas.id_partida, partidas.tipo, partidas.item, partidas.descripcion, TRIM(BOTH '/DIA' FROM partidas.unidad_medida) unidad_medida, partidas.metrado, partidas.costo_unitario, partidas.metrado * partidas.costo_unitario parcial, COALESCE(SUM(avanceactividades.valor), 0) * (COALESCE(parcial_negativo / parcial_positivo, 0) + 1) avance_metrado, COALESCE(SUM(avanceactividades.valor * partidas.costo_unitario), 0) * (COALESCE(parcial_negativo / parcial_positivo, 0) + 1) avance_costo, partidas.metrado - COALESCE(SUM(avanceactividades.valor), 0) * (COALESCE(parcial_negativo / parcial_positivo, 0) + 1) metrados_saldo, (partidas.metrado * partidas.costo_unitario) - (COALESCE(SUM(avanceactividades.valor * partidas.costo_unitario), 0) * (COALESCE(parcial_negativo / parcial_positivo, 0) + 1)) metrados_costo_saldo, COALESCE(SUM(avanceactividades.valor), 0) / partidas.metrado * 100 * (COALESCE(parcial_negativo / parcial_positivo, 0) + 1) porcentaje, (COALESCE(parcial_negativo / parcial_positivo, 0) + 1) porcentaje_negatividad, COALESCE(partidas.metrado / partidas.rendimiento, '') partida_duracion, COALESCE(estado_partida.mayorMetrado, FALSE) mayorMetrado, prioridades.valor prioridad_valor, prioridades.color prioridad_color, iconoscategorias.nombre iconocategoria_nombre
+        FROM componentes
+        INNER JOIN partidas ON partidas.componentes_id_componente = componentes.id_componente
+        LEFT JOIN (
+          SELECT partidas.id_partida, TRUE mayorMetrado
+          FROM partidas
+          LEFT JOIN actividades ON actividades.Partidas_id_partida = partidas.id_partida
+          LEFT JOIN avanceactividades ON avanceactividades.Actividades_id_actividad = actividades.id_actividad
+          LEFT JOIN historialactividades ON historialactividades.actividades_id_actividad = actividades.id_actividad
+          WHERE historialactividades.estado = 'Mayor Metrado'
+          GROUP BY partidas.id_partida
+        ) estado_partida ON estado_partida.id_partida = partidas.id_partida
+        LEFT JOIN iconoscategorias ON iconoscategorias.id_iconoCategoria = partidas.iconosCategorias_id_iconoCategoria
+        LEFT JOIN prioridades ON prioridades.id_prioridad = partidas.prioridades_id_prioridad
+        LEFT JOIN actividades ON actividades.Partidas_id_partida = partidas.id_partida
+        LEFT JOIN avanceactividades ON avanceactividades.Actividades_id_actividad = actividades.id_actividad
+        LEFT JOIN historialactividades ON historialactividades.actividades_id_actividad = actividades.id_actividad
+        LEFT JOIN (
+          SELECT partidas.id_partida, SUM(actividades.parcial) parcial_positivo
+          FROM partidas
+          LEFT JOIN actividades ON actividades.Partidas_id_partida = partidas.id_partida
+          LEFT JOIN historialactividades ON historialactividades.actividades_id_actividad = actividades.id_actividad
+          WHERE actividades.parcial > 0 AND historialactividades.estado IS NULL
+          GROUP BY partidas.id_partida
+        ) p1 ON p1.id_partida = partidas.id_partida
+        LEFT JOIN (
+          SELECT partidas.id_partida, SUM(actividades.parcial) parcial_negativo
+          FROM partidas
+          LEFT JOIN actividades ON actividades.Partidas_id_partida = partidas.id_partida
+          LEFT JOIN historialactividades ON historialactividades.actividades_id_actividad = actividades.id_actividad
+          WHERE actividades.parcial < 0 AND historialactividades.estado IS NULL
+          GROUP BY partidas.id_partida
+        ) p2 ON p2.id_partida = partidas.id_partida
+        LEFT JOIN (
+          SELECT historialpartidas.estado, historialpartidas.partidas_id_partida
+          FROM (
+            SELECT MAX(id_historialPartida) id_historialPartida
+            FROM historialpartidas
+            GROUP BY historialpartidas.partidas_id_partida
+          ) maximoHistorial
+          LEFT JOIN historialpartidas ON historialpartidas.id_historialPartida = maximoHistorial.id_historialPartida
+        ) historialPartida ON historialPartida.partidas_id_partida = partidas.id_partida
+        WHERE TRUE
+          AND (partidas.componentes_id_componente = ? OR partidas.id_partida = (SELECT actividades.Partidas_id_partida FROM actividades WHERE actividades.id_actividad = ? LIMIT 1) OR componentes.fichas_id_ficha = ?)
+        GROUP BY partidas.id_partida
+        ORDER BY componentes.id_componente, partidas.item
+        `,
+        [id_componente, id_actividad, id_ficha]
+      );
+
+      connection.release();
+
+      if (formato) {
+        for (let i = 0; i < rows.length; i++) {
+          const fila = rows[i];
+          fila.key = i;
+          if (fila.tipo === "titulo") {
+            fila.unidad_medida = "";
+            fila.metrado = "";
+            fila.costo_unitario = "";
+            fila.parcial = "";
+            fila.avance_metrado = "";
+            fila.avance_costo = "";
+            fila.metrados_saldo = "";
+            fila.metrados_costo_saldo = "";
+            fila.porcentaje = "";
+            fila.porcentaje_negatividad = "";
           } else {
-            if (formato) {
-              for (let i = 0; i < res.length; i++) {
-                const fila = res[i];
-                fila.key = i;
-                if (fila.tipo == "titulo") {
-                  fila.unidad_medida = "";
-                  fila.metrado = "";
-                  fila.costo_unitario = "";
-                  fila.parcial = "";
-                  fila.avance_metrado = "";
-                  fila.avance_costo = "";
-                  fila.metrados_saldo = "";
-                  fila.metrados_costo_saldo = "";
-                  fila.porcentaje = "";
-                  fila.porcentaje_negatividad = "";
-                } else {
-                  fila.metrado = formatoAvance(fila.metrado);
-                  fila.costo_unitario = formatoAvance(fila.costo_unitario);
-                  fila.parcial = formatoAvance(fila.parcial);
-                  fila.avance_metrado = formatoAvance(fila.avance_metrado);
-                  fila.avance_costo = formatoAvance(fila.avance_costo);
-                  fila.metrados_saldo = formatoAvance(fila.metrados_saldo);
-                  fila.metrados_costo_saldo = formatoAvance(
-                    fila.metrados_costo_saldo
-                  );
-                  fila.porcentaje = tools.formatoPorcentaje(fila.porcentaje);
-                }
-                if (fila.partida_duracion != "") {
-                  fila.partida_duracion = fila.partida_duracion * 480;
-                  if (fila.partida_duracion < 60) {
-                    fila.partida_duracion =
-                      Math.round(fila.partida_duracion) + "m";
-                  } else if (fila.partida_duracion < 480) {
-                    var horas = Math.trunc(fila.partida_duracion / 60) + "h";
-                    var minutos = Math.round(fila.partida_duracion % 60) + "m";
-                    fila.partida_duracion = horas + " " + minutos;
-                  } else {
-                    var dias = Math.trunc(fila.partida_duracion / 480) + "d";
-                    var residuo_dias = Math.trunc(fila.partida_duracion % 480);
-                    var horas = Math.trunc(residuo_dias / 60) + "h";
-                    var minutos = Math.round(residuo_dias % 60) + "m";
-                    fila.partida_duracion = dias + " " + horas + " " + minutos;
-                  }
-                }
-              }
+            fila.metrado = formatoAvance(fila.metrado);
+            fila.costo_unitario = formatoAvance(fila.costo_unitario);
+            fila.parcial = formatoAvance(fila.parcial);
+            fila.avance_metrado = formatoAvance(fila.avance_metrado);
+            fila.avance_costo = formatoAvance(fila.avance_costo);
+            fila.metrados_saldo = formatoAvance(fila.metrados_saldo);
+            fila.metrados_costo_saldo = formatoAvance(
+              fila.metrados_costo_saldo
+            );
+            fila.porcentaje = tools.formatoPorcentaje(fila.porcentaje);
+          }
+          if (fila.partida_duracion !== "") {
+            fila.partida_duracion = fila.partida_duracion * 480;
+            if (fila.partida_duracion < 60) {
+              fila.partida_duracion = Math.round(fila.partida_duracion) + "m";
+            } else if (fila.partida_duracion < 480) {
+              const horas = Math.trunc(fila.partida_duracion / 60) + "h";
+              const minutos = Math.round(fila.partida_duracion % 60) + "m";
+              fila.partida_duracion = horas + " " + minutos;
+            } else {
+              const dias = Math.trunc(fila.partida_duracion / 480) + "d";
+              const residuo_dias = Math.trunc(fila.partida_duracion % 480);
+              const horas = Math.trunc(residuo_dias / 60) + "h";
+              const minutos = Math.round(residuo_dias % 60) + "m";
+              fila.partida_duracion = dias + " " + horas + " " + minutos;
             }
-            resolve(res);
           }
         }
-      );
-    });
+      }
+
+      return rows;
+    } catch (error) {
+      throw error;
+    }
   },
-  getPartidas2({
+
+  async getPartidas2({
     id_componente,
     inicio,
     fin,
@@ -175,86 +221,115 @@ module.exports = {
     id_iconoCategoria,
     texto_buscar,
   }) {
-    var query =
+    let query =
       "SELECT * FROM partidas WHERE partidas.componentes_id_componente = ?";
-    var condiciones = [];
-    if (id_prioridad != 0) {
+    const condiciones = [];
+    if (id_prioridad !== 0) {
       condiciones.push(`(partidas.prioridades_id_prioridad = ${id_prioridad})`);
     }
-    if (id_iconoCategoria != 0) {
+    if (id_iconoCategoria !== 0) {
       condiciones.push(
         `(partidas.iconosCategorias_id_iconoCategoria =  ${id_iconoCategoria})`
       );
     }
-    if (texto_buscar != "") {
+    if (texto_buscar !== "") {
       condiciones.push(
-        `(partidas.item like \'%${texto_buscar}%\' || partidas.descripcion like \'%${texto_buscar}%\')`
+        `(partidas.item like '%${texto_buscar}%' || partidas.descripcion like '%${texto_buscar}%')`
       );
     }
     if (condiciones.length > 0) {
       query += " AND " + condiciones.join(" AND ");
     }
-    query += " LIMIT ? , ?";
-    return new Promise((resolve, reject) => {
-      pool.query(query, [id_componente, inicio, fin], (error, res) => {
-        if (error) {
-          reject(error);
-        }
-        resolve(res);
-      });
-    });
+    query += " LIMIT ?, ?";
+
+    try {
+      const connection = await pool.getConnection();
+      const [rows] = await connection.query(query, [
+        id_componente,
+        inicio,
+        fin,
+      ]);
+      connection.release();
+      return rows;
+    } catch (error) {
+      throw error;
+    }
   },
-  getPartidaById({ id_partida }) {
-    return new Promise((resolve, reject) => {
-      pool.query(
-        "select * from partidas where id_partida = ?",
-        [id_partida],
-        (error, res) => {
-          if (error) {
-            reject(error);
-          }
-          resolve(res ? res[0] : {});
-        }
+
+  async getPartidaById({ id_partida }) {
+    try {
+      const connection = await pool.getConnection();
+      const [rows] = await connection.query(
+        "SELECT * FROM partidas WHERE id_partida = ?",
+        [id_partida]
       );
-    });
+      connection.release();
+      return rows ? rows[0] : {};
+    } catch (error) {
+      throw error;
+    }
   },
-  getAvancePartida(id_partida) {
-    return new Promise((resolve, reject) => {
-      pool.query(
+
+  async getAvancePartida(id_partida) {
+    try {
+      const connection = await pool.getConnection();
+      const [rows] = await connection.query(
         "SELECT partidas.metrado,partidas.metrado*partidas.costo_unitario presupuesto, SUM(avanceactividades.valor) avance_metrado, SUM(avanceactividades.valor * partidas.costo_unitario) avance_soles FROM partidas LEFT JOIN actividades ON actividades.Partidas_id_partida = partidas.id_partida LEFT JOIN avanceactividades ON avanceactividades.Actividades_id_actividad = actividades.id_actividad WHERE actividades.Partidas_id_partida = ?",
-        [id_partida],
-        (error, res) => {
-          if (error) {
-            reject(error);
-          }
-          resolve(res ? res[0] : {});
-        }
+        [id_partida]
       );
-    });
+      connection.release();
+      return rows ? rows[0] : {};
+    } catch (error) {
+      throw error;
+    }
   },
-  getPartidasMayorMetradoAvance(id_partida) {
-    return new Promise((resolve, reject) => {
-      pool.query(
-        "/*COALESCE(parcial_negativo / parcial_positivo, 0) + 1 porcentaje_negatividad_ajustado*/SELECT partida.id_partida, partida.avance_metrado * (COALESCE(parcial_negativo / parcial_positivo, 0) + 1) avance_metrado, partida.avance_costo * (COALESCE(parcial_negativo / parcial_positivo, 0) + 1) avance_costo, partida.metrado - COALESCE(partida.avance_metrado, 0) * (COALESCE(parcial_negativo / parcial_positivo, 0) + 1) metrados_saldo, (partida.metrado * partida.costo_unitario) - (COALESCE(partida.avance_costo, 0) * (COALESCE(parcial_negativo / parcial_positivo, 0) + 1)) metrados_costo_saldo, partida.porcentaje * (COALESCE(parcial_negativo / parcial_positivo, 0) + 1) porcentaje FROM (SELECT partidas.Componentes_id_componente, partidas.id_partida, partidas.tipo, partidas.item, partidas.descripcion, partidas.unidad_medida, partidas.metrado, partidas.costo_unitario, partidas.metrado * partidas.costo_unitario parcial, SUM(avanceactividades.valor) avance_metrado, SUM(avanceactividades.valor * partidas.costo_unitario) avance_costo, SUM(avanceactividades.valor) / partidas.metrado * 100 porcentaje, SUM(actividades.parcial) parcial_positivo FROM partidas LEFT JOIN actividades ON actividades.Partidas_id_partida = partidas.id_partida LEFT JOIN avanceactividades ON avanceactividades.Actividades_id_actividad = actividades.id_actividad left join historialactividades on historialactividades.actividades_id_actividad = actividades.id_actividad WHERE (actividades.parcial > 0 OR partidas.tipo = 'titulo') and historialactividades.estado = 'Mayor Metrado' GROUP BY partidas.id_partida) partida LEFT JOIN (SELECT partidas.id_partida, SUM(actividades.parcial) parcial_negativo FROM partidas LEFT JOIN actividades ON actividades.Partidas_id_partida = partidas.id_partida LEFT JOIN avanceactividades ON avanceactividades.Actividades_id_actividad = actividades.id_actividad left join historialactividades on historialactividades.actividades_id_actividad = actividades.id_actividad WHERE actividades.parcial < 0 and historialactividades.estado = 'Mayor Metrado' GROUP BY partidas.id_partida) p2 ON p2.id_partida = partida.id_partida WHERE partida.id_partida = ?",
-        id_partida,
-        (err, res) => {
-          if (err) {
-            reject(err.code);
-          } else {
-            res = res || [];
-            for (let i = 0; i < res.length; i++) {
-              const fila = res[i];
-              fila.avance_metrado = formato(fila.avance_metrado);
-              fila.avance_costo = formato(fila.avance_costo);
-              fila.metrados_saldo = formato(fila.metrados_saldo);
-              fila.metrados_costo_saldo = formato(fila.metrados_costo_saldo);
-              fila.porcentaje = formato(fila.porcentaje);
-            }
-            resolve(res ? res[0] : {});
-          }
-        }
+
+  async getPartidasMayorMetradoAvance(id_partida) {
+    try {
+      const connection = await pool.getConnection();
+      const [rows] = await connection.query(
+        `
+        SELECT partida.id_partida, partida.avance_metrado * (COALESCE(parcial_negativo / parcial_positivo, 0) + 1) avance_metrado, partida.avance_costo * (COALESCE(parcial_negativo / parcial_positivo, 0) + 1) avance_costo, partida.metrado - COALESCE(partida.avance_metrado, 0) * (COALESCE(parcial_negativo / parcial_positivo, 0) + 1) metrados_saldo, (partida.metrado * partida.costo_unitario) - (COALESCE(partida.avance_costo, 0) * (COALESCE(parcial_negativo / parcial_positivo, 0) + 1)) metrados_costo_saldo, partida.porcentaje * (COALESCE(parcial_negativo / parcial_positivo, 0) + 1) porcentaje
+        FROM (
+          SELECT partidas.Componentes_id_componente, partidas.id_partida, partidas.tipo, partidas.item, partidas.descripcion, partidas.unidad_medida, partidas.metrado, partidas.costo_unitario, partidas.metrado * partidas.costo_unitario parcial, SUM(avanceactividades.valor) avance_metrado, SUM(avanceactividades.valor * partidas.costo_unitario) avance_costo, SUM(avanceactividades.valor) / partidas.metrado * 100 porcentaje, SUM(actividades.parcial) parcial_positivo
+          FROM partidas
+          LEFT JOIN actividades ON actividades.Partidas_id_partida = partidas.id_partida
+          LEFT JOIN avanceactividades ON avanceactividades.Actividades_id_actividad = actividades.id_actividad
+          LEFT JOIN historialactividades ON historialactividades.actividades_id_actividad = actividades.id_actividad
+          WHERE (actividades.parcial > 0 OR partidas.tipo = 'titulo') and historialactividades.estado = 'Mayor Metrado'
+          GROUP BY partidas.id_partida
+        ) partida
+        LEFT JOIN (
+          SELECT partidas.id_partida, SUM(actividades.parcial) parcial_negativo
+          FROM partidas
+          LEFT JOIN actividades ON actividades.Partidas_id_partida = partidas.id_partida
+          LEFT JOIN avanceactividades ON avanceactividades.Actividades_id_actividad = actividades.id_actividad
+          LEFT JOIN historialactividades ON historialactividades.actividades_id_actividad = actividades.id_actividad
+          WHERE actividades.parcial < 0 and historialactividades.estado = 'Mayor Metrado'
+          GROUP BY partidas.id_partida
+        ) p2 ON p2.id_partida = partida.id_partida
+        WHERE partida.id_partida = ?
+        `,
+        [id_partida]
       );
-    });
+
+      connection.release();
+
+      if (rows) {
+        for (let i = 0; i < rows.length; i++) {
+          const fila = rows[i];
+          fila.avance_metrado = formato(fila.avance_metrado);
+          fila.avance_costo = formato(fila.avance_costo);
+          fila.metrados_saldo = formato(fila.metrados_saldo);
+          fila.metrados_costo_saldo = formato(fila.metrados_costo_saldo);
+          fila.porcentaje = formato(fila.porcentaje);
+        }
+      }
+
+      return rows ? rows[0] : {};
+    } catch (error) {
+      throw error;
+    }
   },
   getActividades(id_partida) {
     return new Promise((resolve, reject) => {

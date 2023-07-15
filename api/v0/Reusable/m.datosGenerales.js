@@ -1,46 +1,40 @@
 module.exports = {
-  getDatosGenerales2(id_ficha) {
-    return new Promise((resolve, reject) => {
-      pool.query(
-        "SELECT fichas.*,DATE_FORMAT(fecha_inicial, '%Y-%m-%d') fecha_inicial,DATE_FORMAT(resolucion_fecha, '%Y-%m-%d') resolucion_fecha FROM fichas WHERE fichas.id_ficha = ?",
-        [id_ficha],
-        (error, res) => {
-          if (error) {
-            reject(error.code);
-          }
-          resolve(res && res[0]);
-        }
+  async getDatosGenerales2(id_ficha) {
+    try {
+      const [rows] = await pool.query(
+        "SELECT fichas.*, DATE_FORMAT(fecha_inicial, '%Y-%m-%d') fecha_inicial, DATE_FORMAT(resolucion_fecha, '%Y-%m-%d') resolucion_fecha FROM fichas WHERE fichas.id_ficha = ?",
+        [id_ficha]
       );
-    });
+      return rows[0];
+    } catch (error) {
+      throw error;
+    }
   },
-  getPresupuestoCostoDirecto(id_ficha) {
-    return new Promise((resolve, reject) => {
-      pool.query(
-        "SELECT sum(componentes.presupuesto) monto FROM componentes WHERE componentes.fichas_id_ficha = ?",
-        [id_ficha],
-        (error, res) => {
-          if (error) {
-            reject(error);
-          }
-          resolve(res ? res[0] : {});
-        }
+
+  async getPresupuestoCostoDirecto(id_ficha) {
+    try {
+      const [rows] = await pool.query(
+        "SELECT SUM(componentes.presupuesto) monto FROM componentes WHERE componentes.fichas_id_ficha = ?",
+        [id_ficha]
       );
-    });
+      return rows[0] || {};
+    } catch (error) {
+      throw error;
+    }
   },
-  getEstadoObra(id_ficha) {
-    return new Promise((resolve, reject) => {
-      pool.query(
+
+  async getEstadoObra(id_ficha) {
+    try {
+      const [rows] = await pool.query(
         "SELECT estados.* FROM historialestados LEFT JOIN estados ON estados.id_Estado = historialestados.Estados_id_Estado WHERE Fichas_id_ficha = ? AND fecha_inicial = (SELECT MAX(fecha_inicial) FROM historialestados WHERE Fichas_id_ficha = ?)",
-        [id_ficha, id_ficha],
-        (error, res) => {
-          if (error) {
-            reject(error);
-          }
-          resolve(res ? res[0] : {});
-        }
+        [id_ficha, id_ficha]
       );
-    });
+      return rows[0] || {};
+    } catch (error) {
+      throw error;
+    }
   },
+
   async getDatosUsuario({ id_acceso, id_ficha }) {
     try {
       const query = `
