@@ -93,9 +93,11 @@ DB.obtenerTodos = async (params) => {
             datos_anuales.meta meta_anyoactual,
             DATE_FORMAT(MAX(curva_s.fecha_inicial), '%Y-%m-%d') programado_ultima_fecha,
             DATE_FORMAT(MAX(curva_s.financiero_fecha_update),
-                '%Y-%m-%d') financiero_ultima_fecha
+                '%Y-%m-%d') financiero_ultima_fecha,
+            eo.id id_expediente
         FROM
             fichas
+            LEFT JOIN expedientes_obra eo ON eo.ficha_id = fichas.id_ficha
                 LEFT JOIN
             fichas_has_accesos ON fichas_has_accesos.Fichas_id_ficha = fichas.id_ficha
                 LEFT JOIN
@@ -120,7 +122,11 @@ DB.obtenerTodos = async (params) => {
                 LEFT JOIN
             sectores ON sectores.idsectores = fichas.sectores_idsectores
         WHERE
-            fichas_has_accesos.habilitado
+            fichas_has_accesos.habilitado AND eo.id = (
+              SELECT MAX(id)
+              FROM expedientes_obra
+              WHERE ficha_id = fichas.id_ficha
+          ) 
     `;
   if (textoBuscado != "" && textoBuscado != undefined) {
     query += ` AND (g_meta like \'%${textoBuscado}%\' OR fichas.codigo like \'%${textoBuscado}%\')`;

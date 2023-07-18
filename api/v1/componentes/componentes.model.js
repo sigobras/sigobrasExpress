@@ -1,6 +1,6 @@
 const DB = {};
 
-DB.obtenerTodos = ({ id_ficha }) => {
+DB.obtenerTodos = ({ id }) => {
   return new Promise((resolve, reject) => {
     const query = `
     SELECT
@@ -8,10 +8,10 @@ DB.obtenerTodos = ({ id_ficha }) => {
     FROM
         componentes
     WHERE
-        fichas_id_ficha = ?
+        expediente_id = ?
     `;
     pool
-      .execute(query, [id_ficha])
+      .execute(query, [id])
       .then(([rows]) => {
         resolve(rows);
       })
