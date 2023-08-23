@@ -1,5 +1,5 @@
 const express = require("express");
-
+const controllerPartida = require("./controller");
 const Controller = require("./partidas.controller");
 const procesarErrores = require("../../libs/errorHandler").procesarErrores;
 
@@ -36,4 +36,7 @@ obrasRouter.put(
     res.json(response);
   })
 );
+
+obrasRouter.delete("/:id", controllerPartida.deletePartida);
+
 module.exports = obrasRouter;
