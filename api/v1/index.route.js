@@ -1,9 +1,10 @@
 const accesos = require("./accesos/accesos.routes");
+const actividades = require("./actividades/routes");
 const obras = require("./obras/obras.routes");
 const unidadEjecutora = require("./unidadEjecutora/unidadEjecutora.routes");
 const sectores = require("./sectores/sectores.routes");
 const obrasComunicados = require("./obrasComunicados/obrasComunicados.routes");
-const componentes = require("./componentes/componentes.routes");
+const componentes = require("./componentes/routes");
 const obrasEstados = require("./obrasEstados/obrasEstados.routes");
 const avance = require("./avance/avance.routes");
 const obrasAmpliacionesPresupuesto = require("./obrasAmpliacionesPresupuesto/obrasAmpliacionesPresupuesto.routes");
@@ -32,11 +33,17 @@ const partidasImagenes = require("./partidasImagenes/partidasImagenes.routes.js"
 const imagenesLabels = require("./imagenesLabels/imagenesLabels.routes.js");
 const imagenesLabelsAsignadas = require("./imagenesLabelsAsignadas/imagenesLabelsAsignadas.routes.js");
 const imagenesComentarios = require("./imagenesComentarios/imagenesComentarios.routes.js");
+const reporteMonitoreoSeguimiento = require("./reporteMonitoreoSeguimiento/routes.js");
+const personalNoTecnico = require("./personalNoTecnico/routes.js");
+const cargosNoTecnicos = require("./cargosNoTecnicos/routes.js");
+const asignacionPersonalNoTecnico = require("./asignacionPersonalNoTecnico/routes.js");
+const historialPersonalNoTecnico = require("./historialPersonalNoTecnico/routes.js");
 
 const express = require("express");
 const router = express.Router();
 
 router.use("/accesos", accesos);
+router.use("/actividades", actividades);
 router.use("/obras", obras);
 router.use("/unidadEjecutora", unidadEjecutora);
 router.use("/sectores", sectores);
@@ -70,5 +77,10 @@ router.use("/partidasImagenes", partidasImagenes);
 router.use("/imagenesLabels", imagenesLabels);
 router.use("/imagenesLabelsAsignadas", imagenesLabelsAsignadas);
 router.use("/imagenesComentarios", imagenesComentarios);
+router.use("/reporteMonitoreoSeguimiento", reporteMonitoreoSeguimiento);
+router.use("/personalNoTecnico", personalNoTecnico);
+router.use("/cargosNoTecnicos", cargosNoTecnicos);
+router.use("/asignacionPersonalNoTecnico", asignacionPersonalNoTecnico);
+router.use("/historialPersonalNoTecnico", historialPersonalNoTecnico);
 
 module.exports = router;

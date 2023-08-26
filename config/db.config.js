@@ -1,44 +1,50 @@
-const mysql = require("mysql");
-const log = require("../utils/logger");
+const mysql = require('mysql2/promise');
+const log = require('../utils/logger');
 
-var pool = mysql.createPool({
+const pool = mysql.createPool({
   connectionLimit: 200,
   host: process.env.HOST,
   user: process.env.USER,
   password: process.env.PASSWORD,
   database: process.env.DATABASE,
-  // multipleStatements: true,
 });
-pool.getConnection((err, connection) => {
-  if (err) {
-    if (err.code === "PROTOCOL_CONNECTION_LOST") {
-      console.error("Database connection was closed.");
-    }
-    if (err.code === "ER_CON_COUNT_ERROR") {
-      console.error("Database has too many connections.");
-    }
-    if (err.code === "ECONNREFUSED") {
-      console.error("Database connection was refused.");
+
+async function initDatabase() {
+  try {
+    const connection = await pool.getConnection();
+    console.log('Database Connection established');
+    connection.destroy();
+  } catch (err) {
+    switch (err.code) {
+      case 'PROTOCOL_CONNECTION_LOST':
+        console.error('Database connection was closed.');
+        break;
+      case 'ER_CON_COUNT_ERROR':
+        console.error('Database has too many connections.');
+        break;
+      case 'ECONNREFUSED':
+        console.error('Database connection was refused.');
+        break;
+      default:
+        console.error('Database connection error:', err);
     }
   }
-  if (connection) {
-    console.log("Database Connection stablished");
-    connection.release();
+
+  if (process.env.NODE_ENV === 'dev') {
+    pool.on('acquire', (connection) => {
+      console.log(`Connection ${connection.threadId} acquired`);
+    });
+
+    pool.on('release', (connection) => {
+      console.log(`Connection ${connection.threadId} released`);
+    });
   }
-  return;
-});
-if (process.env.NODE_ENV === "dev") {
-  pool.on("acquire", function (connection) {
-    console.log("Connection %d acquired", connection.threadId);
-  });
-  // pool.on("connection", function (connection) {
-  //   // connection.query("SET SESSION auto_increment_increment=1");
-  // });
-  pool.on("release", function (connection) {
-    console.log("Connection %d released", connection.threadId);
+
+  pool.on('enqueue', () => {
+    log.warn('Waiting for available connection slot');
   });
 }
-pool.on("enqueue", function () {
-  log.warn("Waiting for available connection slot");
-});
+
+initDatabase();
+
 module.exports = pool;

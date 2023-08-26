@@ -1,7 +1,7 @@
 const queryBuilder = require("../../libs/queryBuilder");
 const DB = {};
 
-DB.obtenerTodos = ({
+DB.obtenerTodos = async ({
   id_ficha,
   id_cargo,
   habilitado,
@@ -10,8 +10,7 @@ DB.obtenerTodos = ({
   sort_by,
   textoBuscado,
 }) => {
-  return new Promise((resolve, reject) => {
-    var query = `
+  var query = `
               SELECT
                   fichas_has_accesos.id id_asignacion,
                   accesos.id_acceso,
@@ -38,57 +37,55 @@ DB.obtenerTodos = ({
                       LEFT JOIN
                   cargos ON cargos.id_Cargo = fichas_has_accesos.Cargos_id_Cargo
             `;
-    var condiciones = [];
-    if (textoBuscado) {
-      condiciones.push(
-        `(accesos.nombre like '%${textoBuscado}%'||accesos.apellido_paterno like '%${textoBuscado}%'||accesos.apellido_materno like '%${textoBuscado}%')`
-      );
-    }
-    if (id_ficha != "" && id_ficha != undefined && id_ficha != 0) {
-      condiciones.push(`(fichas_has_accesos.Fichas_id_ficha = ${id_ficha})`);
-    }
-    if (id_cargo != "" && id_cargo != undefined && id_cargo != 0) {
-      condiciones.push(`(Cargos_id_Cargo = ${id_cargo})`);
-    }
-    if (habilitado != "" && habilitado != undefined && habilitado != 0) {
-      condiciones.push(`(habilitado = ${habilitado})`);
-    }
-    if (
-      cargos_tipo_id != "" &&
-      cargos_tipo_id != undefined &&
-      cargos_tipo_id != 0
-    ) {
-      condiciones.push(`(cargos_tipo_id = ${cargos_tipo_id})`);
-    }
-    if (condiciones.length > 0) {
-      query += " WHERE " + condiciones.join(" AND ");
-    }
-    if (group_by) {
-      query += `
+  var condiciones = [];
+  if (textoBuscado) {
+    condiciones.push(
+      `(accesos.nombre like '%${textoBuscado}%'||accesos.apellido_paterno like '%${textoBuscado}%'||accesos.apellido_materno like '%${textoBuscado}%')`
+    );
+  }
+  if (id_ficha != "" && id_ficha != undefined && id_ficha != 0) {
+    condiciones.push(`(fichas_has_accesos.Fichas_id_ficha = ${id_ficha})`);
+  }
+  if (id_cargo != "" && id_cargo != undefined && id_cargo != 0) {
+    condiciones.push(`(Cargos_id_Cargo = ${id_cargo})`);
+  }
+  if (habilitado != "" && habilitado != undefined && habilitado != 0) {
+    condiciones.push(`(habilitado = ${habilitado})`);
+  }
+  if (
+    cargos_tipo_id != "" &&
+    cargos_tipo_id != undefined &&
+    cargos_tipo_id != 0
+  ) {
+    condiciones.push(`(cargos_tipo_id = ${cargos_tipo_id})`);
+  }
+  if (condiciones.length > 0) {
+    query += " WHERE " + condiciones.join(" AND ");
+  }
+  if (group_by) {
+    query += `
       GROUP BY ${group_by}
     `;
+  }
+  if (sort_by) {
+    var sortProcesado = sort_by.split(",");
+    var querySortBy = "ORDER BY";
+    for (let index = 0; index < sortProcesado.length; index++) {
+      const element = sortProcesado[index];
+      querySortBy += ` ${element},`;
     }
-    if (sort_by) {
-      var sortProcesado = sort_by.split(",");
-      var querySortBy = "ORDER BY";
-      for (let index = 0; index < sortProcesado.length; index++) {
-        const element = sortProcesado[index];
-        querySortBy += ` ${element},`;
-      }
-      querySortBy = querySortBy.slice(0, -1);
-      query += querySortBy;
-    }
-    pool.query(query, (error, res) => {
-      if (error) {
-        reject(error);
-      }
-      resolve(res);
-    });
-  });
+    querySortBy = querySortBy.slice(0, -1);
+    query += querySortBy;
+  }
+  try {
+    const [res] = await pool.query(query);
+    return res;
+  } catch (error) {
+    throw error;
+  }
 };
-DB.obtenerUsuarioByIdAcceso = ({ id_acceso, id_ficha }) => {
-  return new Promise((resolve, reject) => {
-    var query = `
+DB.obtenerUsuarioByIdAcceso = async ({ id_acceso, id_ficha }) => {
+  var query = `
              SELECT
                 cargos.nombre cargo_nombre, accesos.nombre usuario_nombre,cargos_tipo_id
             FROM
@@ -101,13 +98,12 @@ DB.obtenerUsuarioByIdAcceso = ({ id_acceso, id_ficha }) => {
                 fichas_has_accesos.Accesos_id_acceso = ${id_acceso}
                     AND fichas_has_accesos.Fichas_id_ficha = ${id_ficha}
             `;
-    pool.query(query, (error, res) => {
-      if (error) {
-        reject(error);
-      }
-      resolve(res ? res[0] : {});
-    });
-  });
+  try {
+    const [res] = await pool.query(query);
+    return res ? res[0] : {};
+  } catch (error) {
+    throw error;
+  }
 };
 DB.ingresarUsuario = ({
   nombre,

@@ -1,8 +1,23 @@
+const mysql = require("mysql2/promise");
 const BaseModel = require("../../libs/baseModel");
+const pool = require("../../../config/db.config");
+
 const DB = {};
-DB.obtenerTodosPublico = ({ id_unidadEjecutora, idsectores }) => {
-  return new Promise((resolve, reject) => {
-    var query = `
+
+const buildConditions = (params) => {
+  const conditions = [];
+  for (const key in params) {
+    const newKey =
+      key === "id_acceso" && params[key] !== "0" ? "Accesos_id_acceso" : key;
+    if (params[key] !== "0" && params[key] !== undefined) {
+      conditions.push(`(${newKey} = ${params[key]})`);
+    }
+  }
+  return conditions.length > 0 ? " AND " + conditions.join(" AND ") : "";
+};
+
+DB.obtenerTodosPublico = async ({ id_unidadEjecutora, idsectores }) => {
+  let query = `
    SELECT
         id_ficha,
         fichas.codigo,
@@ -42,44 +57,17 @@ DB.obtenerTodosPublico = ({ id_unidadEjecutora, idsectores }) => {
     WHERE
         estado_publico
     `;
-    var condiciones = [];
-    if (id_unidadEjecutora != 0 && id_unidadEjecutora != undefined) {
-      condiciones.push(`(id_unidadEjecutora = ${id_unidadEjecutora})`);
-    }
-    if (idsectores != 0 && idsectores != undefined) {
-      condiciones.push(`(idsectores = ${idsectores})`);
-    }
-    if (condiciones.length > 0) {
-      query += " AND " + condiciones.join(" AND ");
-    }
-    query += `
+  query += buildConditions({ id_unidadEjecutora, idsectores });
+  query += `
     ORDER BY unidadejecutoras.poblacion desc , sectores_idsectores
-    `;
-    // resolve(query);
-    pool.query(query, (err, res) => {
-      if (err) {
-        reject(err);
-        return;
-      }
-      resolve(res);
-    });
-  });
+  `;
+  const [rows] = await pool.query(query);
+  return rows;
 };
-DB.obtenerTodos = ({
-  id_unidadEjecutora,
-  idsectores,
-  id_Estado,
-  id_acceso,
-  sort_by,
-  id,
-  textoBuscado,
-}) => {
-  return new Promise((resolve, reject) => {
-    if (sort_by) {
-      var sort_byData = sort_by.split("-");
-    }
+DB.obtenerTodos = async (params) => {
+  const { id, sort_by, textoBuscado, ...rest } = params;
 
-    var query = `
+  let query = `
        SELECT
             id_ficha,
             fichas.codigo,
@@ -105,9 +93,11 @@ DB.obtenerTodos = ({
             datos_anuales.meta meta_anyoactual,
             DATE_FORMAT(MAX(curva_s.fecha_inicial), '%Y-%m-%d') programado_ultima_fecha,
             DATE_FORMAT(MAX(curva_s.financiero_fecha_update),
-                '%Y-%m-%d') financiero_ultima_fecha
+                '%Y-%m-%d') financiero_ultima_fecha,
+            eo.id id_expediente
         FROM
             fichas
+            LEFT JOIN expedientes_obra eo ON eo.ficha_id = fichas.id_ficha
                 LEFT JOIN
             fichas_has_accesos ON fichas_has_accesos.Fichas_id_ficha = fichas.id_ficha
                 LEFT JOIN
@@ -132,61 +122,29 @@ DB.obtenerTodos = ({
                 LEFT JOIN
             sectores ON sectores.idsectores = fichas.sectores_idsectores
         WHERE
-            fichas_has_accesos.habilitado
+            fichas_has_accesos.habilitado AND eo.id = (
+              SELECT MAX(id)
+              FROM expedientes_obra
+              WHERE ficha_id = fichas.id_ficha
+          ) 
     `;
-    var condiciones = [];
-    if (textoBuscado != "" && textoBuscado != undefined) {
-      condiciones.push(
-        `(g_meta like \'%${textoBuscado}%\') || (fichas.codigo like \'%${textoBuscado}%\')`
-      );
-    }
-    if (id_acceso != 0) {
-      condiciones.push(`Accesos_id_acceso = ${id_acceso}`);
-    }
-    if (id != 0 && id != undefined) {
-      condiciones.push(`(fichas.id_ficha = ${id})`);
-    }
-    if (id_unidadEjecutora != 0 && id_unidadEjecutora != undefined) {
-      condiciones.push(`(id_unidadEjecutora = ${id_unidadEjecutora})`);
-    }
-    if (idsectores != 0 && idsectores != undefined) {
-      condiciones.push(`(idsectores = ${idsectores})`);
-    }
-    if (id_Estado != 0 && id_Estado != undefined) {
-      condiciones.push(`(id_Estado = ${id_Estado})`);
-    }
-    if (condiciones.length > 0) {
-      query += " AND " + condiciones.join(" AND ");
-    }
-    query += `
-    GROUP BY fichas.id_ficha
+  if (textoBuscado != "" && textoBuscado != undefined) {
+    query += ` AND (g_meta like \'%${textoBuscado}%\' OR fichas.codigo like \'%${textoBuscado}%\')`;
+  }
+  query += buildConditions(rest);
+  query += `
+      GROUP BY fichas.id_ficha
     `;
-    if (sort_by) {
-      var orderBy = ` ORDER BY ${sort_byData[0]} ${sort_byData[1]}`;
-      query += orderBy;
-    }
-
-    pool.query(query, (err, res) => {
-      if (err) {
-        reject(err);
-        return;
-      }
-      resolve(id ? res[0] : res);
-    });
-  });
+  if (sort_by) {
+    const sort_byData = sort_by.split("-");
+    query += ` ORDER BY ${sort_byData[0]} ${sort_byData[1]}`;
+  }
+  const [rows] = await pool.query(query);
+  return id ? rows[0] : rows;
 };
-DB.obtenerTodosResumen = ({
-  id_acceso,
-  id_unidadEjecutora,
-  idsectores,
-  id_Estado,
-  sort_by,
-}) => {
-  return new Promise((resolve, reject) => {
-    if (sort_by) {
-      var sort_byData = sort_by.split("-");
-    }
-    var query = `
+DB.obtenerTodosResumen = async (params) => {
+  const { sort_by, ...rest } = params;
+  let query = `
         SELECT
             id_ficha,
             fichas.codigo,
@@ -224,61 +182,27 @@ DB.obtenerTodosResumen = ({
         WHERE
             Accesos_id_acceso = ${id_acceso}
     `;
-    var condiciones = [];
-    if (id_unidadEjecutora != 0 && id_unidadEjecutora != undefined) {
-      condiciones.push(`(id_unidadEjecutora = ${id_unidadEjecutora})`);
-    }
-    if (idsectores != 0 && idsectores != undefined) {
-      condiciones.push(`(idsectores = ${idsectores})`);
-    }
-    if (id_Estado != 0 && id_Estado != undefined) {
-      condiciones.push(`(id_Estado = ${id_Estado})`);
-    }
-    if (condiciones.length > 0) {
-      query += " AND " + condiciones.join(" AND ");
-    }
-    if (sort_by) {
-      var orderBy = ` ORDER BY ${sort_byData[0]} ${sort_byData[1]}`;
-      query += orderBy;
-    }
-    pool.query(query, (err, res) => {
-      if (err) {
-        reject(err);
-        return;
-      }
-      resolve(res);
-    });
-  });
+  query += buildConditions(rest);
+  if (sort_by) {
+    const sort_byData = sort_by.split("-");
+    query += ` ORDER BY ${sort_byData[0]} ${sort_byData[1]}`;
+  }
+  const [rows] = await pool.query(query);
+  return rows;
 };
-DB.actualizarDatos = ({
-  id,
-  codigo_snip,
-  funcion,
-  division_funcional,
-  subprograma,
-}) => {
-  return new Promise((resolve, reject) => {
-    var g_snip = codigo_snip;
-    var g_func = funcion;
-    var g_subprog = subprograma;
-    var query = BaseModel.update(
-      "fichas",
-      {
-        g_snip,
-        g_func,
-        division_funcional,
-        g_subprog,
-      },
-      [`id_ficha = ${id}`]
-    );
-    pool.query(query, (err, res) => {
-      if (err) {
-        console.log(err);
-        reject(err);
-        return;
-      }
-      resolve(res);
-    });
-  });
+DB.actualizarDatos = async (params) => {
+  const { id, codigo_snip, funcion, division_funcional, subprograma } = params;
+  const query = BaseModel.update(
+    "fichas",
+    {
+      g_snip: codigo_snip,
+      g_func: funcion,
+      division_funcional,
+      g_subprog: subprograma,
+    },
+    [`id_ficha = ${id}`]
+  );
+  const [result] = await pool.query(query);
+  return result;
 };
 module.exports = DB;

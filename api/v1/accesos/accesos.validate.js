@@ -4,8 +4,6 @@ const log = require("../../../utils/logger");
 const blueprintUsuario = Joi.object().keys({
   usuario: Joi.string().alphanum().min(3).max(30).required(),
   password: Joi.string().min(6).max(200).required(),
-  id_cargo: Joi.required(),
-  id_usuario: Joi.required(),
 });
 
 let validarUsuario = (req, res, next) => {

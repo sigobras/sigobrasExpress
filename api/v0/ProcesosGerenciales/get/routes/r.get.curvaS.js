@@ -99,7 +99,7 @@ module.exports = (app) => {
   });
   app.post("/getDataCurvaSAnyos", async (req, res) => {
     try {
-      var data = await User.getDataCurvaSAnyos(req.body);
+      var data = await User.getDataCurvaSAnyos(req.body.id_ficha);
       res.json(data);
     } catch (error) {
       console.log(error);
@@ -255,7 +255,7 @@ module.exports = (app) => {
   });
   app.post("/getCurvaSPin", async (req, res) => {
     try {
-      var data = await User.getCurvaSPin(req.body.id_ficha, req.body.anyo);
+      var data = await User.getCurvaSPin(req.body);
       res.json(data);
     } catch (error) {
       console.log(error);
