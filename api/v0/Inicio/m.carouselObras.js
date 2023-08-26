@@ -35,16 +35,10 @@ async function getImagenesObra({ id_ficha, cantidad }) {
   }
 }
 
-function executeQuery(query, values) {
-  return new Promise((resolve, reject) => {
-    pool.query(query, values, (err, res) => {
-      if (err) {
-        reject(err);
-      } else {
-        resolve(res);
-      }
-    });
-  });
+async function executeQuery(query, values) {
+  const connection = await pool.getConnection();
+  const [res] = await connection.query(query, [...values]);
+  return res;
 }
 
 module.exports = {
