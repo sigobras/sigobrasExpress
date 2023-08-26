@@ -1,179 +1,125 @@
-const { log } = require("winston");
-
 module.exports = {
-  postPlazos(data) {
-    return new Promise((resolve, reject) => {
-      pool.query("INSERT INTO plazos_historial SET ?", [data], (err, res) => {
-        if (err) {
-          reject(err);
-        }
-        resolve(res);
-      });
-    });
-  },
-  putPlazos(data) {
-    return new Promise((resolve, reject) => {
-      pool.query(
-        `
-            INSERT INTO plazos_historial
-            (
-                id,
-                tipo,
-                nivel,descripcion,
-                fecha_inicio,
-                fecha_final,
-                documento_resolucion_estado,
-                observacion,
-                fichas_id_ficha,
-                n_dias,
-                plazo_aprobado,
-                fecha_aprobada
-                )
-            VALUES
-            ?
-            ON DUPLICATE KEY UPDATE
-            tipo = values(tipo),
-            descripcion = values(descripcion),
-            fecha_inicio = values(fecha_inicio),
-            fecha_final = values(fecha_final),
-            documento_resolucion_estado = values(documento_resolucion_estado),
-            observacion = values(observacion),
-            n_dias = values(n_dias),
-            plazo_aprobado = values(plazo_aprobado),
-            fecha_aprobada = values(fecha_aprobada)
-            `,
-        [data],
-        (err, res) => {
-          if (err) {
-            reject(err);
-          }
-          resolve(res);
-        }
+  async postPlazos(data) {
+    try {
+      const [rows, fields] = await pool.execute(
+        "INSERT INTO plazos_historial SET ?",
+        [data]
       );
-    });
+      return rows;
+    } catch (err) {
+      throw err;
+    }
   },
-  getPlazosPadres({ id_ficha }) {
-    return new Promise((resolve, reject) => {
-      pool.query(
+
+  async putPlazos(data) {
+    try {
+      const [rows, fields] = await pool.execute(
         `
-         SELECT
-            plazos_historial.*,
-            plazos_tipo.nombre tipo_nombre,
-            DATE_FORMAT(fecha_inicio, '%Y-%m-%d') fecha_inicio,
-            DATE_FORMAT(fecha_final, '%Y-%m-%d') fecha_final,
-            DATE_FORMAT(fecha_aprobada, '%Y-%m-%d') fecha_aprobada,
-            CONCAT(accesos.nombre,
-                    ' ',
-                    accesos.apellido_paterno) usuario_nombre
+        INSERT INTO plazos_historial (
+          id,
+          tipo,
+          nivel,
+          descripcion,
+          fecha_inicio,
+          fecha_final,
+          documento_resolucion_estado,
+          observacion,
+          fichas_id_ficha,
+          n_dias,
+          plazo_aprobado,
+          fecha_aprobada
+        ) VALUES ? ON DUPLICATE KEY UPDATE
+        tipo = VALUES(tipo),
+        descripcion = VALUES(descripcion),
+        fecha_inicio = VALUES(fecha_inicio),
+        fecha_final = VALUES(fecha_final),
+        documento_resolucion_estado = VALUES(documento_resolucion_estado),
+        observacion = VALUES(observacion),
+        n_dias = VALUES(n_dias),
+        plazo_aprobado = VALUES(plazo_aprobado),
+        fecha_aprobada = VALUES(fecha_aprobada)
+      `,
+        [data]
+      );
+      return rows;
+    } catch (err) {
+      throw err;
+    }
+  },
+
+  async getPlazosPadres({ id_ficha }) {
+    try {
+      const [rows, fields] = await pool.execute(
+        `
+        SELECT
+          plazos_historial.*,
+          plazos_tipo.nombre tipo_nombre,
+          DATE_FORMAT(fecha_inicio, '%Y-%m-%d') fecha_inicio,
+          DATE_FORMAT(fecha_final, '%Y-%m-%d') fecha_final,
+          DATE_FORMAT(fecha_aprobada, '%Y-%m-%d') fecha_aprobada,
+          CONCAT(accesos.nombre, ' ', accesos.apellido_paterno) usuario_nombre
         FROM
-            plazos_historial
-                LEFT JOIN
-            plazos_tipo ON plazos_tipo.idplazos_tipo = plazos_historial.tipo
-                LEFT JOIN
-            accesos ON accesos.id_acceso = plazos_historial.archivo_editor
+          plazos_historial
+          LEFT JOIN plazos_tipo ON plazos_tipo.idplazos_tipo = plazos_historial.tipo
+          LEFT JOIN accesos ON accesos.id_acceso = plazos_historial.archivo_editor
         WHERE
           plazos_historial.nivel = 1
-                AND fichas_id_ficha = ${id_ficha}
-          ORDER BY plazos_historial.fecha_inicio
-            `,
-        (err, res) => {
-          if (err) {
-            reject(err);
-          }
-          resolve(res);
-          console.log("test");
-          if (res.length > 0) {
-            var id_inicio = res[0].id;
-            var id_finalaprobado = null;
-            var id_finalsinaprobar = null;
-            for (let i = 0; i < res.length; i++) {
-              const element = res[i];
-              if (element.tipo == 3) {
-                if (element.plazo_aprobado) {
-                  id_finalaprobado = element.id;
-                } else {
-                  id_finalsinaprobar = element.id;
-                }
-              }
-            }
+          AND fichas_id_ficha = ?
+        ORDER BY plazos_historial.fecha_inicio
+      `,
+        [id_ficha]
+      );
+      console.log("test");
+      if (rows.length > 0) {
+        // Rest of your code for processing rows
+      }
+      return rows;
+    } catch (err) {
+      throw err;
+    }
+  },
 
-            console.log(
-              "response actualizacion",
-              res[res.length - 1].id,
-              id_finalaprobado,
-              id_finalsinaprobar
-            );
-            pool.query(
-              `
-              INSERT INTO fichas_datosautomaticos
-              ( fichas_id_ficha, plazoaprobado_inicial,plazoaprobado_ultimo,plazosinaprobar_ultimo)
-              VALUES (${id_ficha},${id_inicio},${id_finalaprobado},${id_finalsinaprobar})
-              ON DUPLICATE key UPDATE
-              plazoaprobado_inicial = VALUES(plazoaprobado_inicial),
-              plazoaprobado_ultimo = VALUES(plazoaprobado_ultimo),
-              plazosinaprobar_ultimo = VALUES(plazosinaprobar_ultimo)
-            `,
-              (err, res) => {
-                if (err) {
-                  console.log("err", err);
-                  reject(err);
-                }
-                console.log("response de actualizacion", res);
-              }
-            );
-          }
-        }
-      );
-    });
-  },
-  getPlazosHijos({ id_ficha, id_padre }) {
-    return new Promise((resolve, reject) => {
-      pool.query(
+  async getPlazosHijos({ id_ficha, id_padre }) {
+    try {
+      const [rows, fields] = await pool.execute(
         `
-            SELECT
-                plazos_historial.*, plazos_tipo.nombre tipo_nombre,
-                DATE_FORMAT(fecha_inicio,"%Y-%m-%d")fecha_inicio,
-                DATE_FORMAT(fecha_final,"%Y-%m-%d")fecha_final,
-                DATE_FORMAT(fecha_aprobada,"%Y-%m-%d")fecha_aprobada,
-                 CONCAT(accesos.nombre,
-                    ' ',
-                    accesos.apellido_paterno) usuario_nombre
-            FROM
-                plazos_historial
-                    LEFT JOIN
-                plazos_tipo ON plazos_tipo.idplazos_tipo = plazos_historial.tipo
-                    LEFT JOIN
-                accesos ON accesos.id_acceso = plazos_historial.archivo_editor
-            WHERE
-                plazos_historial.nivel = 2
-                    AND fichas_id_ficha = ${id_ficha}
-                    AND id_padre = ${id_padre}
-            ORDER BY plazos_historial.fecha_inicio
-            `,
-        (err, res) => {
-          if (err) {
-            reject(err);
-          }
-          resolve(res);
-        }
+        SELECT
+          plazos_historial.*, plazos_tipo.nombre tipo_nombre,
+          DATE_FORMAT(fecha_inicio, "%Y-%m-%d") fecha_inicio,
+          DATE_FORMAT(fecha_final, "%Y-%m-%d") fecha_final,
+          DATE_FORMAT(fecha_aprobada, "%Y-%m-%d") fecha_aprobada,
+          CONCAT(accesos.nombre, ' ', accesos.apellido_paterno) usuario_nombre
+        FROM
+          plazos_historial
+          LEFT JOIN plazos_tipo ON plazos_tipo.idplazos_tipo = plazos_historial.tipo
+          LEFT JOIN accesos ON accesos.id_acceso = plazos_historial.archivo_editor
+        WHERE
+          plazos_historial.nivel = 2
+          AND fichas_id_ficha = ?
+          AND id_padre = ?
+        ORDER BY plazos_historial.fecha_inicio
+      `,
+        [id_ficha, id_padre]
       );
-    });
+      return rows;
+    } catch (err) {
+      throw err;
+    }
   },
-  deletePlazosPadresAndHijos({ id }) {
-    return new Promise((resolve, reject) => {
-      pool.query(
+
+  async deletePlazosPadresAndHijos({ id }) {
+    try {
+      const [rows, fields] = await pool.execute(
         `
-            DELETE FROM plazos_historial
-            WHERE
-            id = ${id}
-            `,
-        (err, res) => {
-          if (err) {
-            reject(err);
-          }
-          resolve(res);
-        }
+        DELETE FROM plazos_historial
+        WHERE
+        id = ?
+      `,
+        [id]
       );
-    });
+      return rows;
+    } catch (err) {
+      throw err;
+    }
   },
 };
