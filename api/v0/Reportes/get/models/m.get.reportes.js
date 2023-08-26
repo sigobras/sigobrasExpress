@@ -142,15 +142,13 @@ userModel.resumenValorizacionPrincipal = (
                 nombre: "COSTO DIRECTO",
                 presupuesto: tools.formatoSoles(presupuesto),
                 anterior: tools.formatoSoles(anterior),
-                porcentaje_anterior: tools.formatoPorcentaje(
-                  porcentaje_anterior
-                ),
+                porcentaje_anterior:
+                  tools.formatoPorcentaje(porcentaje_anterior),
                 actual: tools.formatoSoles(actual),
                 porcentaje_actual: tools.formatoPorcentaje(porcentaje_actual),
                 acumulado: tools.formatoSoles(acumulado),
-                porcentaje_acumulado: tools.formatoPorcentaje(
-                  porcentaje_acumulado
-                ),
+                porcentaje_acumulado:
+                  tools.formatoPorcentaje(porcentaje_acumulado),
                 saldo: tools.formatoSoles(saldo),
                 porcentaje_saldo: tools.formatoPorcentaje(porcentaje_saldo),
               },
@@ -163,9 +161,8 @@ userModel.resumenValorizacionPrincipal = (
                 nombre: "COSTO INDIRECTO TOTAL",
                 presupuesto: tools.formatoSoles(presupuesto2),
                 anterior: tools.formatoSoles(anterior2),
-                porcentaje_anterior: tools.formatoPorcentaje(
-                  porcentaje_anterior2
-                ),
+                porcentaje_anterior:
+                  tools.formatoPorcentaje(porcentaje_anterior2),
                 actual: tools.formatoSoles(actual2),
                 porcentaje_actual: tools.formatoPorcentaje(porcentaje_actual2),
                 acumulado: tools.formatoSoles(acumulado2),
@@ -890,19 +887,87 @@ userModel.getAvanceTotal = ({ id_ficha, fecha_final }) => {
     });
   });
 };
-userModel.getImagenesCurvaS = ({ id_ficha, cantidad }) => {
-  return new Promise((resolve, reject) => {
-    pool.query(
-      "SELECT * FROM ((SELECT id_partidaImagen id_partida, imagen, DATE_FORMAT(fecha, '%Y-%m-%d') fecha, descripcionObservacion descripcion, partidas.item, partidas.descripcion partida_descripcion FROM partidasimagenes LEFT JOIN partidas ON partidas.id_partida = partidasimagenes.partidas_id_partida WHERE id_partidaImagen IN (SELECT MAX(partidasimagenes.id_partidaImagen) FROM componentes LEFT JOIN partidas ON partidas.componentes_id_componente = componentes.id_componente INNER JOIN partidasimagenes ON partidasimagenes.partidas_id_partida = partidas.id_partida WHERE componentes.fichas_id_ficha = ? GROUP BY partidas.id_partida)) UNION ALL (SELECT id_partida, imagen, DATE_FORMAT(fecha, '%Y-%m-%d') fecha, avanceactividades.descripcion, partidas.item, partidas.descripcion partida_descripcion FROM partidas LEFT JOIN actividades ON actividades.Partidas_id_partida = partidas.id_partida LEFT JOIN avanceactividades ON avanceactividades.Actividades_id_actividad = actividades.id_actividad WHERE id_AvanceActividades IN (SELECT MAX(avanceactividades.id_AvanceActividades) FROM componentes LEFT JOIN partidas ON partidas.componentes_id_componente = componentes.id_componente LEFT JOIN actividades ON actividades.Partidas_id_partida = partidas.id_partida LEFT JOIN avanceactividades ON avanceactividades.Actividades_id_actividad = actividades.id_actividad WHERE componentes.fichas_id_ficha = ? AND avanceactividades.imagen IS NOT NULL GROUP BY partidas.id_partida))) test GROUP BY id_partida ORDER BY fecha DESC LIMIT ?",
-      [id_ficha, id_ficha, cantidad],
-      (err, res) => {
-        if (err) {
-          reject(err);
-        }
-        resolve(res);
-      }
-    );
-  });
+userModel.getImagenesCurvaS = async ({ id_ficha, cantidad }) => {
+  try {
+    const query = `SELECT
+    *
+  FROM
+    ((
+    SELECT
+      id_partidaImagen id_partida,
+      imagen,
+      DATE_FORMAT(fecha,
+      '%Y-%m-%d') fecha,
+      descripcionObservacion descripcion,
+      partidas.item,
+      partidas.descripcion partida_descripcion
+    FROM
+      partidasimagenes
+    LEFT JOIN partidas ON
+      partidas.id_partida = partidasimagenes.partidas_id_partida
+    WHERE
+      id_partidaImagen IN (
+      SELECT
+        MAX(partidasimagenes.id_partidaImagen)
+      FROM
+      expedientes_obra eo 
+    left join
+      componentes on eo.id = componentes.expediente_id 
+        
+      LEFT JOIN partidas ON
+        partidas.componentes_id_componente = componentes.id_componente
+      INNER JOIN partidasimagenes ON
+        partidasimagenes.partidas_id_partida = partidas.id_partida
+      WHERE
+        eo.ficha_id  = ?
+      GROUP BY
+        partidas.id_partida))
+  UNION ALL (
+  SELECT
+    id_partida,
+    imagen,
+    DATE_FORMAT(fecha,
+    '%Y-%m-%d') fecha,
+    avanceactividades.descripcion,
+    partidas.item,
+    partidas.descripcion partida_descripcion
+  FROM
+    partidas
+  LEFT JOIN actividades ON
+    actividades.Partidas_id_partida = partidas.id_partida
+  LEFT JOIN avanceactividades ON
+    avanceactividades.Actividades_id_actividad = actividades.id_actividad
+  WHERE
+    id_AvanceActividades IN (
+    SELECT
+      MAX(avanceactividades.id_AvanceActividades)
+    FROM
+    expedientes_obra eo 
+    left join
+      componentes on eo.id = componentes.expediente_id 
+    LEFT JOIN partidas ON
+      partidas.componentes_id_componente = componentes.id_componente
+    LEFT JOIN actividades ON
+      actividades.Partidas_id_partida = partidas.id_partida
+    LEFT JOIN avanceactividades ON
+      avanceactividades.Actividades_id_actividad = actividades.id_actividad
+    WHERE
+      eo.ficha_id  = ?
+      AND avanceactividades.imagen IS NOT NULL
+    GROUP BY
+      partidas.id_partida))) test
+  GROUP BY
+    id_partida
+  ORDER BY
+    fecha DESC
+  LIMIT ?  
+      `;
+    const connection = await pool.getConnection();
+    const [res] = await connection.query(query, [id_ficha, id_ficha, cantidad]);
+    return res;
+  } catch (error) {
+    throw error;
+  }
 };
 
 module.exports = userModel;
