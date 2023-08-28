@@ -25,11 +25,17 @@ const getActivityById = async (req, res) => {
 };
 
 const createActivity = async (req, res) => {
-  try {
-    const { body } = req;
-    const result = await Model.create(body);
-    res.status(200).json(result);
-  } catch (error) {
+  let { actividades } = req.body;
+  try{
+    if (Array.isArray(actividades)) {
+      const results = await Model.bulkCreate(actividades);
+      res.status(200).json(results);
+    } else {
+      const { body } = req;
+      const result = await Model.create(body);
+      res.status(200).json(result);
+    }
+  }catch (error) {
     console.error(error);
     res.status(500).json({ message: "Internal server error" });
   }
