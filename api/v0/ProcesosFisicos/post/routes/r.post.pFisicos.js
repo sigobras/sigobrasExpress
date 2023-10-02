@@ -194,30 +194,36 @@ module.exports = function (app) {
   });
   app.post("/postActividad2", async (req, res) => {
     try {
-      var fecha_revisada = await User.getFechasRevisadas(req.body);
-      var message = "";
-      var response = "";
-      if (fecha_revisada.total == 0) {
-        response = await User.postActividad2(req.body);
+      // Obtener la información de fechas revisadas
+      const fechaRevisada = await User.getFechasRevisadas(req.body);
+      let message = "";
+
+      if (fechaRevisada.total === 0) {
+        // Si no hay fechas revisadas, proceder con el registro de actividad
+        const response = await User.postActividad2(req.body);
+
         if (response.affectedRows > 0) {
+          // Si el registro fue exitoso, actualizar los valores correspondientes
           User.actualizarAvanceFisicoAcumulado(req.body);
           User.actualizarAvanceFisicoAcumuladoCurvaS(req.body);
           User.actualizarUltimoDiaMetrado(req.body);
-          message = "registro exitoso";
+          message = "Registro exitoso";
         } else {
-          message = "hubo un problema al momento del registro";
+          message = "Hubo un problema al momento del registro";
           res.status(400).json({ message });
           return;
         }
       } else {
-        message = "la fecha que ingresó ya fue verificada por el supervisor";
+        message = "La fecha que ingresó ya fue verificada por el supervisor";
         res.status(400).json({ message });
         return;
       }
+
+      // Enviar una respuesta exitosa
       res.status(200).json({ message });
     } catch (error) {
-      console.log(error);
-      var message = "hubo un problema al momento del registro";
+      console.error(error);
+      const message = "Hubo un problema al momento del registro";
       res.status(400).json({ message });
     }
   });

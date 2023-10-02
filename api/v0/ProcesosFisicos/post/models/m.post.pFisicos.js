@@ -271,140 +271,145 @@ userModel.eliminarCostosIndirectos = (data) => {
   });
 };
 //cambios nuevos de apis
-userModel.getFechasRevisadas = ({ id_ficha, fecha }) => {
-  return new Promise((resolve, reject) => {
-    pool.query(
+userModel.getFechasRevisadas = async ({ id_ficha, fecha }) => {
+  try {
+    const [rows] = await pool.execute(
       "SELECT COUNT(fecha_revisada) total FROM fechas_revisadas WHERE fichas_id_ficha = ? AND fechas_revisadas.fecha_revisada = ?;",
-      [id_ficha, fecha],
-      (error, res) => {
-        if (error) {
-          reject(error);
-        }
-        resolve(res ? res[0] : {});
-      }
+      [id_ficha, fecha]
     );
-  });
+
+    return rows ? rows[0] : {};
+  } catch (error) {
+    throw error;
+  }
 };
-userModel.postActividad2 = ({
+userModel.postActividad2 = async ({
   fecha,
   valor,
   descripcion,
   id_actividad,
   id_acceso,
 }) => {
-  return new Promise((resolve, reject) => {
-    pool.query(
-      "INSERT INTO avanceactividades (fecha, valor, descripcion, Actividades_id_actividad, accesos_id_acceso) VALUES (?,?,?,?,?)",
-      [fecha, valor, descripcion, id_actividad, id_acceso],
-      (error, res) => {
-        if (error) {
-          reject(error);
-        }
-        resolve(res);
-      }
+  try {
+    const [rows] = await pool.execute(
+      "INSERT INTO avanceactividades (fecha, valor, descripcion, Actividades_id_actividad, accesos_id_acceso) VALUES (?, ?, ?, ?, ?)",
+      [fecha, valor, descripcion, id_actividad, id_acceso]
     );
-  });
-};
-userModel.actualizarAvanceFisicoAcumulado = ({ id_ficha }) => {
-  return new Promise(async (resolve, reject) => {
-    var query = `
-    SELECT
-        SUM(avanceactividades.valor * partidas.costo_unitario) avance
-    FROM
-        componentes
-            LEFT JOIN
-        partidas ON partidas.componentes_id_componente = componentes.id_componente
-            LEFT JOIN
-        actividades ON actividades.Partidas_id_partida = partidas.id_partida
-            LEFT JOIN
-        avanceactividades ON avanceactividades.Actividades_id_actividad = actividades.id_actividad
-    WHERE
-        componentes.fichas_id_ficha = ${id_ficha}
-    `;
 
-    var response = await pool.query(query, (error, res) => {
-      if (error) {
-        reject(error);
-      }
-      var avance = res[0].avance || 0;
-      console.log("response", res[0].avance);
-      var query2 = `
-      INSERT INTO fichas_datosautomaticos
-        (avancefisico_acumulado, fichas_id_ficha)
-      VALUES (${avance}, ${id_ficha})
-       ON DUPLICATE key UPDATE avancefisico_acumulado = VALUES(avancefisico_acumulado)
+    return rows;
+  } catch (error) {
+    throw error;
+  }
+};
+userModel.actualizarAvanceFisicoAcumulado = async ({ id_ficha }) => {
+  try {
+    const [rows] = await pool.execute(
+      `
+      SELECT SUM(avanceactividades.valor * partidas.costo_unitario) as avance
+      FROM
+      expedientes_obra eo 
+      left join componentes on componentes.expediente_id  = eo.id 
+      LEFT JOIN partidas ON partidas.componentes_id_componente = componentes.id_componente
+      LEFT JOIN actividades ON actividades.Partidas_id_partida = partidas.id_partida
+      LEFT JOIN avanceactividades ON avanceactividades.Actividades_id_actividad = actividades.id_actividad
+      WHERE eo.ficha_id  = 117;
+    `,
+      [id_ficha]
+    );
+
+    const avance = rows[0].avance || 0;
+
+    const [result] = await pool.execute(
+      `
+      INSERT INTO fichas_datosautomaticos (avancefisico_acumulado, fichas_id_ficha)
+      VALUES (?, ?)
+      ON DUPLICATE KEY UPDATE avancefisico_acumulado = VALUES(avancefisico_acumulado)
+    `,
+      [avance, id_ficha]
+    );
+
+    return result;
+  } catch (error) {
+    throw error;
+  }
+};
+userModel.actualizarAvanceFisicoAcumuladoCurvaS = async ({
+  id_ficha,
+  fecha,
+}) => {
+  try {
+    const [anyo, mes] = fecha.split("-");
+
+    const query = `
+    UPDATE
+      curva_s
+    SET
+      fisico_monto = (
+      SELECT
+        SUM(avanceactividades.valor * partidas.costo_unitario) avance
+      FROM
+        expedientes_obra eo
+      left join
+          componentes on
+        componentes.expediente_id = eo.id
+      LEFT JOIN partidas ON
+        partidas.componentes_id_componente = componentes.id_componente
+      LEFT JOIN actividades ON
+        actividades.Partidas_id_partida = partidas.id_partida
+      LEFT JOIN avanceactividades ON
+        avanceactividades.Actividades_id_actividad = actividades.id_actividad
+      WHERE
+        eo.ficha_id = ?
+        AND YEAR(avanceactividades.fecha) = ?
+        AND MONTH(avanceactividades.fecha) = ?
+          )
+    WHERE
+      fichas_id_ficha = ?
+      AND anyo = ?
+      AND mes = ?
       `;
-      pool.query(query2, (error, res) => {
-        if (error) {
-          reject(error);
-        }
-        console.log("res", res);
-        resolve(res);
-      });
-    });
-  });
+
+    const [rows] = await pool.execute(query, [
+      id_ficha,
+      anyo,
+      mes,
+      id_ficha,
+      anyo,
+      mes,
+    ]);
+
+    return rows;
+  } catch (error) {
+    throw error;
+  }
 };
-userModel.actualizarAvanceFisicoAcumuladoCurvaS = ({ id_ficha, fecha }) => {
-  return new Promise(async (resolve, reject) => {
-    var anyo = fecha.split("-")[0];
-    var mes = fecha.split("-")[1];
-    var query = `
-   UPDATE curva_s
-    SET
-        fisico_monto = (SELECT
-                SUM(avanceactividades.valor * partidas.costo_unitario) avance
-            FROM
-                componentes
-                    LEFT JOIN
-                partidas ON partidas.componentes_id_componente = componentes.id_componente
-                    LEFT JOIN
-                actividades ON actividades.Partidas_id_partida = partidas.id_partida
-                    LEFT JOIN
-                avanceactividades ON avanceactividades.Actividades_id_actividad = actividades.id_actividad
-            WHERE
-                componentes.fichas_id_ficha = ${id_ficha}
-                    AND YEAR(avanceactividades.fecha) = ${anyo}
-                    AND MONTH(avanceactividades.fecha) = ${mes})
-    WHERE
-        fichas_id_ficha = ${id_ficha} AND anyo = ${anyo}
-            AND mes = ${mes}
-    `;
-    pool.query(query, (error, res) => {
-      if (error) {
-        reject(error);
-      }
-      resolve(res);
-    });
-  });
-};
-userModel.actualizarUltimoDiaMetrado = ({ id_ficha }) => {
-  return new Promise(async (resolve, reject) => {
-    var query = `
-  UPDATE fichas_datosautomaticos
-    SET
-        avancefisico_ultimafecha = (SELECT
-                DATE_FORMAT(MAX(avanceactividades.fecha), '%Y-%m-%d') fecha
-            FROM
-                componentes
-                    LEFT JOIN
-                partidas ON partidas.componentes_id_componente = componentes.id_componente
-                    LEFT JOIN
-                actividades ON actividades.Partidas_id_partida = partidas.id_partida
-                    LEFT JOIN
-                avanceactividades ON avanceactividades.Actividades_id_actividad = actividades.id_actividad
-            WHERE
-                componentes.fichas_id_ficha = ${id_ficha}
-                    AND avanceactividades.valor > 0)
-    WHERE
-        fichas_id_ficha = ${id_ficha}
-    `;
-    pool.query(query, (error, res) => {
-      if (error) {
-        reject(error);
-      }
-      resolve(res);
-    });
-  });
+userModel.actualizarUltimoDiaMetrado = async ({ id_ficha }) => {
+  try {
+    const [rows, fields] = await pool.execute(
+      `
+      UPDATE fichas_datosautomaticos
+      SET
+          avancefisico_ultimafecha = (
+              SELECT DATE_FORMAT(MAX(avanceactividades.fecha), '%Y-%m-%d') fecha
+              FROM expedientes_obra eo
+      		  left join componentes on componentes.expediente_id = eo.id
+              LEFT JOIN partidas ON partidas.componentes_id_componente = componentes.id_componente
+              LEFT JOIN actividades ON actividades.Partidas_id_partida = partidas.id_partida
+              LEFT JOIN avanceactividades ON avanceactividades.Actividades_id_actividad = actividades.id_actividad
+              WHERE eo.ficha_id = ?
+                AND avanceactividades.valor > 0
+          )
+      WHERE fichas_id_ficha = ?
+    `,
+      [id_ficha, id_ficha]
+    );
+
+    pool.end(); // Cierra la conexión
+
+    return rows;
+  } catch (error) {
+    throw error;
+  }
 };
 //recruso edicion
 userModel.updateRecursoAvance = ({ id_ficha, tipo, descripcion, cantidad }) => {
