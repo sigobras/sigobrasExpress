@@ -404,8 +404,6 @@ userModel.actualizarUltimoDiaMetrado = async ({ id_ficha }) => {
       [id_ficha, id_ficha]
     );
 
-    pool.end(); // Cierra la conexión
-
     return rows;
   } catch (error) {
     throw error;
